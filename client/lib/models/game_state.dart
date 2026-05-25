@@ -14,6 +14,9 @@ class GameState {
   final bool isFirstTrick;
   final String? myTeam;
   final List<String> selectedCardIds;
+  final List<Card> mustRevealCards;
+  final List<Card> canRevealCards;
+  final Map<String, dynamic>? gameOverData;
 
   GameState({
     this.phase = 'WAITING',
@@ -29,6 +32,9 @@ class GameState {
     this.isFirstTrick = false,
     this.myTeam,
     this.selectedCardIds = const [],
+    this.mustRevealCards = const [],
+    this.canRevealCards = const [],
+    this.gameOverData,
   });
 
   GameState copyWith({
@@ -45,6 +51,9 @@ class GameState {
     bool? isFirstTrick,
     String? myTeam,
     List<String>? selectedCardIds,
+    List<Card>? mustRevealCards,
+    List<Card>? canRevealCards,
+    Map<String, dynamic>? gameOverData,
   }) {
     return GameState(
       phase: phase ?? this.phase,
@@ -60,6 +69,9 @@ class GameState {
       isFirstTrick: isFirstTrick ?? this.isFirstTrick,
       myTeam: myTeam ?? this.myTeam,
       selectedCardIds: selectedCardIds ?? this.selectedCardIds,
+      mustRevealCards: mustRevealCards ?? this.mustRevealCards,
+      canRevealCards: canRevealCards ?? this.canRevealCards,
+      gameOverData: gameOverData ?? this.gameOverData,
     );
   }
 

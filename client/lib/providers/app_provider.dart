@@ -7,6 +7,7 @@ final roomCodeProvider = StateProvider<String>((ref) => '');
 final isHostProvider = StateProvider<bool>((ref) => false);
 final isSinglePlayerProvider = StateProvider<bool>((ref) => false);
 final aiDifficultyProvider = StateProvider<String>((ref) => 'NORMAL');
+final playerCountProvider = StateProvider<int>((ref) => 3);
 final socketServiceProvider = Provider<SocketService>((ref) {
   return SocketService();
 });

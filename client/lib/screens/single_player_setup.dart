@@ -63,6 +63,7 @@ class _SinglePlayerSetupState extends ConsumerState<SinglePlayerSetup> {
                 onPressed: () {
                   ref.read(isSinglePlayerProvider.notifier).state = true;
                   ref.read(aiDifficultyProvider.notifier).state = _difficulty;
+                  ref.read(playerCountProvider.notifier).state = _playerCount;
                   Navigator.pushReplacementNamed(context, '/game');
                 },
                 icon: const Icon(Icons.play_arrow),

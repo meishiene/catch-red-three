@@ -30,7 +30,17 @@ class LocalGameNotifier extends StateNotifier<GameState> {
         break;
 
       case 'game:identity-phase':
-        state = state.copyWith(phase: 'IDENTITY_REVEAL');
+        final mustReveal = (data['mustReveal'] as List?)
+            ?.map((c) => Card.fromJson(c as Map<String, dynamic>))
+            .toList() ?? [];
+        final canReveal = (data['canReveal'] as List?)
+            ?.map((c) => Card.fromJson(c as Map<String, dynamic>))
+            .toList() ?? [];
+        state = state.copyWith(
+          phase: 'IDENTITY_REVEAL',
+          mustRevealCards: mustReveal,
+          canRevealCards: canReveal,
+        );
         break;
 
       case 'game:trick-start':
@@ -41,7 +51,6 @@ class LocalGameNotifier extends StateNotifier<GameState> {
         break;
 
       case 'game:turn-request':
-        final isMyTurn = data['isFirstTrick'] != null;
         BoardState? board;
         if (data['board'] != null) {
           final b = data['board'] as Map<String, dynamic>;
@@ -100,7 +109,7 @@ class LocalGameNotifier extends StateNotifier<GameState> {
         break;
 
       case 'game:over':
-        state = state.copyWith(phase: 'GAME_OVER');
+        state = state.copyWith(phase: 'GAME_OVER', gameOverData: data);
         break;
 
       case 'game:error':

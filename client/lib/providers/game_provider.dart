@@ -7,10 +7,6 @@ import '../engine/types.dart';
 import '../engine/card.dart';
 import 'app_provider.dart';
 
-final socketServiceProvider = Provider<SocketService>((ref) {
-  throw UnimplementedError('SocketService must be provided externally');
-});
-
 class GameNotifier extends StateNotifier<GameState> {
   final SocketService _socket;
   final String _myPlayerId;
@@ -40,7 +36,18 @@ class GameNotifier extends StateNotifier<GameState> {
     });
 
     _subIdentityPhase = _socket.on<Map<String, dynamic>>('game:identity-phase').listen((data) {
-      state = state.copyWith(phase: 'IDENTITY_REVEAL', turnTimeoutRemainingMs: data['timeoutMs'] as int?);
+      final mustReveal = (data['mustReveal'] as List?)
+          ?.map((c) => Card.fromJson(c as Map<String, dynamic>))
+          .toList() ?? [];
+      final canReveal = (data['canReveal'] as List?)
+          ?.map((c) => Card.fromJson(c as Map<String, dynamic>))
+          .toList() ?? [];
+      state = state.copyWith(
+        phase: 'IDENTITY_REVEAL',
+        turnTimeoutRemainingMs: data['timeoutMs'] as int?,
+        mustRevealCards: mustReveal,
+        canRevealCards: canReveal,
+      );
     });
 
     _subTurnRequest = _socket.on<Map<String, dynamic>>('game:turn-request').listen((data) {
@@ -93,7 +100,7 @@ class GameNotifier extends StateNotifier<GameState> {
     });
 
     _subGameOver = _socket.on<Map<String, dynamic>>('game:over').listen((data) {
-      state = state.copyWith(phase: 'GAME_OVER');
+      state = state.copyWith(phase: 'GAME_OVER', gameOverData: data);
     });
   }
 
@@ -142,3 +149,9 @@ class GameNotifier extends StateNotifier<GameState> {
     super.dispose();
   }
 }
+
+final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
+  final socket = ref.watch(socketServiceProvider);
+  final playerId = ref.watch(playerIdProvider);
+  return GameNotifier(socket, playerId);
+});

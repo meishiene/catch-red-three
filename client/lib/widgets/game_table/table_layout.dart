@@ -16,71 +16,52 @@ class TableLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final opponents = opponentCounts.entries.toList();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Stack(
-        children: [
-          // Table center
-          Center(
-            child: Container(
-              width: 120,
-              height: 120,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableSize = constraints.maxWidth * 0.35;
+        final count = opponents.length;
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Table center
+            Container(
+              width: tableSize,
+              height: tableSize,
               decoration: BoxDecoration(
                 color: const Color(0xFF2E7D32).withOpacity(0.3),
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0xFF4CAF50), width: 2),
               ),
             ),
-          ),
-          // Position opponent seats
-          ..._buildOpponentSeats(opponents, context),
-        ],
-      ),
+            // Opponent seats distributed across the top
+            ...List.generate(count, (i) {
+              final entry = opponents[i];
+              final isFinished = finishOrder.any((f) => f['playerId'] == entry.key);
+              final isTurn = entry.key == currentTurnPlayerId;
+              final name = entry.key.length > 4 ? entry.key.substring(0, 4) : entry.key;
+
+              // Distribute seats evenly: calculate x position as fraction of width
+              final double fraction = count <= 1 ? 0.5 : i / (count - 1);
+              final leftPadding = 60.0;
+              final availableWidth = constraints.maxWidth - leftPadding * 2;
+              final xPos = leftPadding + fraction * availableWidth - 40; // 40 = half seat width
+
+              return Positioned(
+                top: 8,
+                left: xPos,
+                child: _OpponentSeat(
+                  name: name,
+                  cardCount: isFinished ? 0 : entry.value,
+                  isActive: isTurn,
+                  isFinished: isFinished,
+                ),
+              );
+            }),
+          ],
+        );
+      },
     );
-  }
-
-  List<Widget> _buildOpponentSeats(
-    List<MapEntry<String, int>> opponents,
-    BuildContext context,
-  ) {
-    final widgets = <Widget>[];
-    final count = opponents.length;
-
-    for (var i = 0; i < count; i++) {
-      final entry = opponents[i];
-      final isFinished = finishOrder.any((f) => f['playerId'] == entry.key);
-      final isTurn = entry.key == currentTurnPlayerId;
-
-      // Position opponents in a semi-circle at the top
-      double topOffset = 10;
-      double leftOffset;
-
-      if (count == 1) {
-        leftOffset = 100;
-      } else if (count == 2) {
-        leftOffset = 20 + (i * 160.0);
-      } else if (count == 3) {
-        leftOffset = 10 + (i * 110.0);
-      } else {
-        // count == 4
-        leftOffset = 5 + (i * 80.0);
-      }
-
-      widgets.add(
-        Positioned(
-          top: topOffset,
-          left: leftOffset,
-          child: _OpponentSeat(
-            name: entry.key.length > 4 ? entry.key.substring(0, 4) : entry.key,
-            cardCount: isFinished ? 0 : entry.value,
-            isActive: isTurn,
-            isFinished: isFinished,
-          ),
-        ),
-      );
-    }
-
-    return widgets;
   }
 }
 

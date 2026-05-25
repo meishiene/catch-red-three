@@ -6,6 +6,7 @@ import '../providers/local_game_provider.dart';
 import '../models/game_state.dart';
 import '../engine/types.dart';
 import '../engine/card.dart';
+import '../ai/ai_scorer.dart';
 import '../widgets/cards/playing_card_widget.dart';
 import '../widgets/game_table/table_layout.dart';
 import '../widgets/actions/reveal_dialog.dart';
@@ -18,6 +19,8 @@ class GameScreen extends ConsumerStatefulWidget {
 }
 
 class _GameScreenState extends ConsumerState<GameScreen> {
+  bool _revealDialogShown = false;
+
   @override
   void initState() {
     super.initState();
@@ -27,13 +30,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void _checkGameStart() {
     final isSingle = ref.read(isSinglePlayerProvider);
     if (isSingle) {
-      final difficulty = ref.read(aiDifficultyProvider);
-      final playerCount = 3; // TODO: pass from setup screen
+      final difficultyStr = ref.read(aiDifficultyProvider);
+      final difficulty = AIDifficulty.values.firstWhere(
+        (d) => d.name == difficultyStr,
+        orElse: () => AIDifficulty.NORMAL,
+      );
+      final playerCount = ref.read(playerCountProvider);
       final nickname = ref.read(nicknameProvider);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(localGameProvider.notifier).startNewGame(
-          3,
-          AIDifficulty.NORMAL, // TODO: from setup
+          playerCount,
+          difficulty,
           nickname,
         );
       });
@@ -58,10 +65,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     String? roomCode,
   }) {
     // Identity reveal dialog
-    if (gameState.phase == 'IDENTITY_REVEAL') {
+    if (gameState.phase == 'IDENTITY_REVEAL' && !_revealDialogShown) {
+      _revealDialogShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showRevealDialog(context, isSingle);
+        _showRevealDialog(context, isSingle, gameState);
       });
+    }
+    if (gameState.phase != 'IDENTITY_REVEAL') {
+      _revealDialogShown = false;
     }
 
     // Game over
@@ -114,13 +125,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  void _showRevealDialog(BuildContext context, bool isSingle) {
+  void _showRevealDialog(BuildContext context, bool isSingle, GameState gameState) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => RevealDialog(
-        mustReveal: const [],
-        canReveal: const [],
+        mustReveal: gameState.mustRevealCards,
+        canReveal: gameState.canRevealCards,
         onReveal: (cardIds) {
           Navigator.pop(ctx);
           if (isSingle) {
