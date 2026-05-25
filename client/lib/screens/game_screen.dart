@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_provider.dart';
 import '../providers/game_provider.dart';
+import '../providers/local_game_provider.dart';
 import '../models/game_state.dart';
 import '../engine/types.dart';
 import '../engine/card.dart';
 import '../widgets/cards/playing_card_widget.dart';
 import '../widgets/game_table/table_layout.dart';
+import '../widgets/actions/reveal_dialog.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -17,13 +19,65 @@ class GameScreen extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<GameScreen> {
   @override
+  void initState() {
+    super.initState();
+    _checkGameStart();
+  }
+
+  void _checkGameStart() {
+    final isSingle = ref.read(isSinglePlayerProvider);
+    if (isSingle) {
+      final difficulty = ref.read(aiDifficultyProvider);
+      final playerCount = 3; // TODO: pass from setup screen
+      final nickname = ref.read(nicknameProvider);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(localGameProvider.notifier).startNewGame(
+          3,
+          AIDifficulty.NORMAL, // TODO: from setup
+          nickname,
+        );
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final gameState = ref.watch(gameProvider);
-    final roomCode = ref.watch(roomCodeProvider);
+    final isSingle = ref.watch(isSinglePlayerProvider);
+
+    if (isSingle) {
+      return _buildGameContent(context, ref.watch(localGameProvider), isSingle: true);
+    } else {
+      final roomCode = ref.watch(roomCodeProvider);
+      return _buildGameContent(context, ref.watch(gameProvider),
+          isSingle: false, roomCode: roomCode);
+    }
+  }
+
+  Widget _buildGameContent(BuildContext context, GameState gameState, {
+    bool isSingle = false,
+    String? roomCode,
+  }) {
+    // Identity reveal dialog
+    if (gameState.phase == 'IDENTITY_REVEAL') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showRevealDialog(context, isSingle);
+      });
+    }
+
+    // Game over
+    if (gameState.phase == 'GAME_OVER') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacementNamed(context, '/game-result');
+      });
+    }
+
+    final notifier = isSingle
+        ? ref.read(localGameProvider.notifier)
+        : ref.read(gameProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('房间: $roomCode'),
+        title: Text(isSingle ? '人机对战' : '房间: ${roomCode ?? ""}'),
         actions: [
           if (gameState.phase == 'PLAYING')
             Center(
@@ -39,7 +93,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       ),
       body: Column(
         children: [
-          // Opponents area
           Expanded(
             flex: 3,
             child: TableLayout(
@@ -48,23 +101,47 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               finishOrder: gameState.finishOrder,
             ),
           ),
-          // Center play area
           if (gameState.board != null)
-            _buildCenterPlayArea(gameState.board!, context),
-          // My hand
+            _buildCenterPlayArea(gameState.board!),
           Expanded(
             flex: 4,
-            child: _buildMyHand(gameState),
+            child: _buildMyHand(gameState, notifier),
           ),
-          // Action buttons
           if (gameState.currentTurnPlayerId != null)
-            _buildActionButtons(gameState),
+            _buildActionButtons(gameState, notifier),
         ],
       ),
     );
   }
 
-  Widget _buildCenterPlayArea(BoardState board, BuildContext context) {
+  void _showRevealDialog(BuildContext context, bool isSingle) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => RevealDialog(
+        mustReveal: const [],
+        canReveal: const [],
+        onReveal: (cardIds) {
+          Navigator.pop(ctx);
+          if (isSingle) {
+            ref.read(localGameProvider.notifier).reveal(cardIds);
+          } else {
+            ref.read(gameProvider.notifier).reveal(cardIds);
+          }
+        },
+        onSkip: () {
+          Navigator.pop(ctx);
+          if (isSingle) {
+            ref.read(localGameProvider.notifier).skipReveal();
+          } else {
+            ref.read(gameProvider.notifier).skipReveal();
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildCenterPlayArea(BoardState board) {
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(horizontal: 32),
@@ -106,7 +183,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
   }
 
-  Widget _buildMyHand(GameState state) {
+  Widget _buildMyHand(GameState state, dynamic notifier) {
     if (state.hand.isEmpty) {
       return const Center(child: Text('等待发牌...', style: TextStyle(color: Colors.grey)));
     }
@@ -125,7 +202,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 return GestureDetector(
                   onTap: () {
                     if (state.currentTurnPlayerId != null) {
-                      ref.read(gameProvider.notifier).toggleCardSelection(card.id);
+                      notifier.toggleCardSelection(card.id);
                     }
                   },
                   child: AnimatedContainer(
@@ -145,7 +222,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  Widget _buildActionButtons(GameState state) {
+  Widget _buildActionButtons(GameState state, dynamic notifier) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -156,7 +233,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               width: 120,
               height: 48,
               child: OutlinedButton(
-                onPressed: () => ref.read(gameProvider.notifier).pass(),
+                onPressed: () => notifier.pass(),
                 child: const Text('过牌'),
               ),
             ),
@@ -166,7 +243,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             height: 48,
             child: ElevatedButton(
               onPressed: state.selectedCardIds.isNotEmpty
-                  ? () => ref.read(gameProvider.notifier).playSelectedCards()
+                  ? () => notifier.playSelectedCards()
                   : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFD4380D),

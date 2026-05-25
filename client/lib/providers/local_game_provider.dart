@@ -1,0 +1,153 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/game_state.dart';
+import '../engine/types.dart';
+import '../engine/card.dart';
+import '../engine/local_game_engine.dart';
+import '../ai/ai_scorer.dart';
+import 'app_provider.dart';
+
+class LocalGameNotifier extends StateNotifier<GameState> {
+  late LocalGameEngine _engine;
+
+  LocalGameNotifier() : super(GameState()) {}
+
+  void startNewGame(int maxPlayers, AIDifficulty difficulty, String playerName) {
+    _engine = LocalGameEngine(
+      maxPlayers: maxPlayers,
+      difficulty: difficulty,
+      onEvent: _handleGameEvent,
+    );
+    _engine.start();
+  }
+
+  void _handleGameEvent(String event, Map<String, dynamic> data) {
+    switch (event) {
+      case 'game:dealt':
+        final hand = (data['hand'] as List)
+            .map((c) => Card.fromJson(c as Map<String, dynamic>))
+            .toList();
+        state = state.copyWith(phase: 'DEALT', hand: hand);
+        break;
+
+      case 'game:identity-phase':
+        state = state.copyWith(phase: 'IDENTITY_REVEAL');
+        break;
+
+      case 'game:trick-start':
+        state = state.copyWith(
+          phase: 'PLAYING',
+          isFirstTrick: data['isFirstTrick'] as bool,
+        );
+        break;
+
+      case 'game:turn-request':
+        final isMyTurn = data['isFirstTrick'] != null;
+        BoardState? board;
+        if (data['board'] != null) {
+          final b = data['board'] as Map<String, dynamic>;
+          board = BoardState(
+            cards: (b['cards'] as List)
+                .map((c) => Card.fromJson(c as Map<String, dynamic>))
+                .toList(),
+            playType: PlayType.values.firstWhere((t) => t.name == b['playType']),
+            playedByPlayerId: b['playedByPlayerId'] as String,
+          );
+        }
+        state = state.copyWith(
+          phase: 'PLAYING',
+          board: board,
+          currentTurnPlayerId: 'p0',
+          isFirstTrick: data['isFirstTrick'] as bool? ?? false,
+          trickLeaderId: data['isTrickLeader'] == true ? 'p0' : null,
+        );
+        break;
+
+      case 'game:cards-played':
+        final playerId = data['playerId'] as String;
+        final cards = (data['cards'] as List)
+            .map((c) => Card.fromJson(c as Map<String, dynamic>))
+            .toList();
+        final playType = PlayType.values.firstWhere((t) => t.name == data['playType']);
+        state = state.copyWith(
+          board: BoardState(cards: cards, playType: playType, playedByPlayerId: playerId),
+          currentTurnPlayerId: playerId == 'p0' ? 'p0' : null,
+        );
+        // Remove played cards from hand if it was human
+        if (playerId == 'p0') {
+          final newHand = List<Card>.from(state.hand);
+          for (final c in cards) {
+            newHand.removeWhere((h) => h.id == c.id);
+          }
+          state = state.copyWith(hand: newHand);
+        }
+        break;
+
+      case 'game:player-passed':
+        state = state.copyWith(currentTurnPlayerId: null);
+        break;
+
+      case 'game:cards-remaining':
+        if (data['counts'] != null) {
+          final counts = Map<String, int>.from(data['counts'] as Map);
+          state = state.copyWith(opponentCardCounts: counts);
+        }
+        break;
+
+      case 'game:player-finished':
+        final newOrder = List<Map<String, dynamic>>.from(state.finishOrder);
+        newOrder.add({'playerId': data['playerId'], 'position': data['position']});
+        state = state.copyWith(finishOrder: newOrder);
+        break;
+
+      case 'game:over':
+        state = state.copyWith(phase: 'GAME_OVER');
+        break;
+
+      case 'game:error':
+        // Error handling
+        break;
+    }
+  }
+
+  void toggleCardSelection(String cardId) {
+    final selected = List<String>.from(state.selectedCardIds);
+    if (selected.contains(cardId)) {
+      selected.remove(cardId);
+    } else {
+      selected.add(cardId);
+    }
+    state = state.copyWith(selectedCardIds: selected);
+  }
+
+  void playSelectedCards() {
+    if (state.selectedCardIds.isEmpty) return;
+    _engine.handleHumanPlay(state.selectedCardIds);
+    state = state.copyWith(selectedCardIds: []);
+  }
+
+  void pass() {
+    _engine.handleHumanPass();
+  }
+
+  void reveal(List<String> cardIds) {
+    _engine.handleReveal(cardIds);
+    state = state.copyWith(phase: 'PLAYING');
+  }
+
+  void skipReveal() {
+    _engine.handleSkipReveal();
+    state = state.copyWith(phase: 'PLAYING');
+  }
+
+  void startNewRound() {
+    _engine.startNewRound();
+  }
+
+  void clear() {
+    state = GameState();
+  }
+}
+
+final localGameProvider = StateNotifierProvider<LocalGameNotifier, GameState>((ref) {
+  return LocalGameNotifier();
+});
