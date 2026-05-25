@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.packages/
+
+# Build outputs
+dist/
+build/
+*.apk
+*.aab
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Flutter
+.dart_tool/
+*.iml
