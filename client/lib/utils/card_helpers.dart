@@ -1,14 +1,14 @@
 import '../engine/card.dart';
 import '../engine/types.dart';
 
-String getCardImagePath(Card card) {
+String getCardImagePath(GameCard card) {
   final suitMap = {
     Suit.S: 'S', Suit.H: 'H', Suit.C: 'C', Suit.D: 'D', Suit.JOKER: 'JOKER',
   };
   return 'assets/images/cards/${suitMap[card.suit]}_${card.rank.value}.png';
 }
 
-String getCardDisplayName(Card card) {
+String getCardDisplayName(GameCard card) {
   if (card.suit == Suit.JOKER) {
     return card.rank == Rank.BIG_JOKER ? '大王' : '小王';
   }

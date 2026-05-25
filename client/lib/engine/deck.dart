@@ -2,14 +2,14 @@ import 'dart:math';
 import 'types.dart';
 import 'card.dart';
 
-List<Card> createDeck() {
+List<GameCard> createDeck() {
   final suits = [Suit.S, Suit.H, Suit.C, Suit.D];
   final ranks = [
     Rank.FIVE, Rank.SIX, Rank.SEVEN, Rank.EIGHT, Rank.NINE, Rank.TEN,
     Rank.JACK, Rank.QUEEN, Rank.KING, Rank.ACE, Rank.TWO, Rank.THREE, Rank.FOUR,
   ];
 
-  final deck = <Card>[];
+  final deck = <GameCard>[];
   for (final suit in suits) {
     for (final rank in ranks) {
       deck.add(createCard(suit, rank));
@@ -20,8 +20,8 @@ List<Card> createDeck() {
   return deck;
 }
 
-List<Card> shuffleDeck(List<Card> deck) {
-  final shuffled = List<Card>.from(deck);
+List<GameCard> shuffleDeck(List<GameCard> deck) {
+  final shuffled = List<GameCard>.from(deck);
   final rng = Random();
   for (var i = shuffled.length - 1; i > 0; i--) {
     final j = rng.nextInt(i + 1);
@@ -32,9 +32,9 @@ List<Card> shuffleDeck(List<Card> deck) {
   return shuffled;
 }
 
-List<List<Card>> deal(int numPlayers, int firstDealtPlayerIndex) {
+List<List<GameCard>> deal(int numPlayers, int firstDealtPlayerIndex) {
   final deck = shuffleDeck(createDeck());
-  final hands = List.generate(numPlayers, (_) => <Card>[]);
+  final hands = List.generate(numPlayers, (_) => <GameCard>[]);
 
   for (var i = 0; i < deck.length; i++) {
     final playerIdx = (firstDealtPlayerIndex + i) % numPlayers;
@@ -48,7 +48,7 @@ List<List<Card>> deal(int numPlayers, int firstDealtPlayerIndex) {
   return hands;
 }
 
-String? findRedFiveHolder(Map<String, List<Card>> hands) {
+String? findRedFiveHolder(Map<String, List<GameCard>> hands) {
   for (final entry in hands.entries) {
     final hasRedFive = entry.value.any((c) =>
         c.suit == Suit.H && c.rank == Rank.FIVE);

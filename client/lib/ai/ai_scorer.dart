@@ -4,7 +4,7 @@ import '../engine/card.dart';
 
 enum AIDifficulty { EASY, NORMAL, HARD }
 
-double scorePlay(List<Card> play, List<Card> hand, BoardState? boardState,
+double scorePlay(List<GameCard> play, List<GameCard> hand, BoardState? boardState,
     AIDifficulty difficulty, List<int> teamCardCounts) {
   switch (difficulty) {
     case AIDifficulty.EASY:
@@ -16,7 +16,7 @@ double scorePlay(List<Card> play, List<Card> hand, BoardState? boardState,
   }
 }
 
-double _scoreNormal(List<Card> play, List<Card> hand) {
+double _scoreNormal(List<GameCard> play, List<GameCard> hand) {
   double score = 0;
   final playInfo = determinePlay(play);
   if (playInfo == null) return -1;
@@ -32,7 +32,7 @@ double _scoreNormal(List<Card> play, List<Card> hand) {
   return score;
 }
 
-double _scoreHard(List<Card> play, List<Card> hand, List<int> teamCardCounts) {
+double _scoreHard(List<GameCard> play, List<GameCard> hand, List<int> teamCardCounts) {
   double score = 0;
   final playInfo = determinePlay(play);
   if (playInfo == null) return -1;
@@ -73,7 +73,7 @@ bool shouldPass(AIDifficulty difficulty, bool isTrickLeader, BoardState? boardSt
   }
 }
 
-List<String> shouldRevealIdentity(List<Card> canReveal, List<Card> mustReveal, AIDifficulty difficulty) {
+List<String> shouldRevealIdentity(List<GameCard> canReveal, List<GameCard> mustReveal, AIDifficulty difficulty) {
   final toReveal = <String>[];
   toReveal.addAll(mustReveal.map((c) => c.id));
   switch (difficulty) {
@@ -90,7 +90,7 @@ List<String> shouldRevealIdentity(List<Card> canReveal, List<Card> mustReveal, A
   return toReveal;
 }
 
-Card chooseTributeReturnCard(List<Card> hand, AIDifficulty difficulty) {
+GameCard chooseTributeReturnCard(List<GameCard> hand, AIDifficulty difficulty) {
   switch (difficulty) {
     case AIDifficulty.EASY:
     case AIDifficulty.NORMAL:

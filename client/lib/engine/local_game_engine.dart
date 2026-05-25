@@ -21,7 +21,7 @@ class LocalGameEngine {
 
   String phase = 'WAITING';
   late List<String> playerOrder;
-  late Map<String, List<Card>> hands;
+  late Map<String, List<GameCard>> hands;
   late Map<String, String> teams;
   final List<Map<String, dynamic>> revealedCards = [];
   final List<String> finishOrder = [];
@@ -108,7 +108,7 @@ class LocalGameEngine {
       final card = applyTributeGive(hands, pair);
       if (card != null) {
         final winnerHand = hands[pair.toPlayerId] ?? [];
-        Card returnCard;
+        GameCard returnCard;
         if (pair.toPlayerId == 'p0') {
           // Human chooses (handled via UI)
           returnCard = winnerHand.first;
@@ -281,7 +281,7 @@ class LocalGameEngine {
     _applyPass('p0');
   }
 
-  void _applyPlay(String playerId, List<Card> cards) {
+  void _applyPlay(String playerId, List<GameCard> cards) {
     final hand = hands[playerId] ?? [];
     final playInfo = determinePlay(cards);
     if (playInfo == null) return;

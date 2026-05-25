@@ -14,11 +14,11 @@ const Map<PlayType, int> playTypeStrength = {
   PlayType.BOMB: 3, PlayType.BIG_BOMB: 4, PlayType.JOKER_BOMB: 5,
 };
 
-Card createCard(Suit suit, Rank rank) {
-  return Card(id: '${suit.name}_${rank.value}', suit: suit, rank: rank);
+GameCard createCard(Suit suit, Rank rank) {
+  return GameCard(id: '${suit.name}_${rank.value}', suit: suit, rank: rank);
 }
 
-double getSingleCardPower(Card card) {
+double getSingleCardPower(GameCard card) {
   if (card.suit == Suit.JOKER) {
     return card.rank == Rank.BIG_JOKER ? 19 : 18;
   }
@@ -30,7 +30,7 @@ double getSingleCardPower(Card card) {
   return rankPower[card.rank]!.toDouble();
 }
 
-PlayInfo? determinePlay(List<Card> cards) {
+PlayInfo? determinePlay(List<GameCard> cards) {
   final n = cards.length;
   if (n == 0) return null;
 
@@ -85,7 +85,7 @@ bool canBeat(PlayInfo newPlay, PlayInfo? boardPlay) {
   return false;
 }
 
-bool isValidOpeningPlay(List<Card> hand, List<Card> selectedCards) {
+bool isValidOpeningPlay(List<GameCard> hand, List<GameCard> selectedCards) {
   final hasRedFive = selectedCards.any((c) =>
       c.suit == Suit.H && c.rank == Rank.FIVE);
   if (!hasRedFive) return false;
@@ -97,15 +97,15 @@ bool isValidOpeningPlay(List<Card> hand, List<Card> selectedCards) {
   return determinePlay(selectedCards) != null;
 }
 
-Card? findHighestCard(List<Card> hand) {
+GameCard? findHighestCard(List<GameCard> hand) {
   if (hand.isEmpty) return null;
   return hand.reduce((max, c) =>
       getSingleCardPower(c) > getSingleCardPower(max) ? c : max);
 }
 
-Map<String, List<Card>> getRevealEligibility(List<Card> hand, int maxPlayers) {
-  final mustReveal = <Card>[];
-  final canReveal = <Card>[];
+Map<String, List<GameCard>> getRevealEligibility(List<GameCard> hand, int maxPlayers) {
+  final mustReveal = <GameCard>[];
+  final canReveal = <GameCard>[];
 
   for (final card in hand) {
     if (card.rank != Rank.THREE) continue;
@@ -124,7 +124,7 @@ Map<String, List<Card>> getRevealEligibility(List<Card> hand, int maxPlayers) {
   return {'mustReveal': mustReveal, 'canReveal': canReveal};
 }
 
-void applyReveal(List<Card> hand, List<String> revealedCardIds) {
+void applyReveal(List<GameCard> hand, List<String> revealedCardIds) {
   for (final card in hand) {
     if (revealedCardIds.contains(card.id)) {
       card.isRevealed = true;
@@ -132,15 +132,15 @@ void applyReveal(List<Card> hand, List<String> revealedCardIds) {
   }
 }
 
-int compareCardsDesc(Card a, Card b) {
+int compareCardsDesc(GameCard a, GameCard b) {
   final powerDiff = (getSingleCardPower(b) - getSingleCardPower(a)).toInt();
   if (powerDiff != 0) return powerDiff;
   const suitOrder = {Suit.S: 3, Suit.H: 2, Suit.C: 1, Suit.D: 0, Suit.JOKER: -1};
   return (suitOrder[b.suit] ?? 0) - (suitOrder[a.suit] ?? 0);
 }
 
-List<Card> sortHand(List<Card> hand) {
-  final sorted = List<Card>.from(hand);
+List<GameCard> sortHand(List<GameCard> hand) {
+  final sorted = List<GameCard>.from(hand);
   sorted.sort(compareCardsDesc);
   return sorted;
 }

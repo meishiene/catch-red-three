@@ -3,7 +3,7 @@ import '../../engine/types.dart';
 import '../../engine/card.dart';
 
 class PlayingCardWidget extends StatelessWidget {
-  final Card card;
+  final GameCard card;
   final bool faceUp;
   final double size;
 

@@ -5,15 +5,15 @@ import 'team_assigner.dart';
 class TributePair {
   final String fromPlayerId;
   final String toPlayerId;
-  Card? cardFromLoser;
-  Card? cardFromWinner;
+  GameCard? cardFromLoser;
+  GameCard? cardFromWinner;
   TributePair({required this.fromPlayerId, required this.toPlayerId});
 }
 
 List<TributePair> determineTributePairs(
   GameResult gameResult,
   Map<String, String> teams,
-  Map<String, List<Card>> hands,
+  Map<String, List<GameCard>> hands,
   int maxPlayers,
 ) {
   if (gameResult.winner == 'draw') return [];
@@ -67,7 +67,7 @@ List<TributePair> determineTributePairs(
   return pairs;
 }
 
-String? _findHolder(Map<String, List<Card>> hands, Map<String, String> teams, Suit suit) {
+String? _findHolder(Map<String, List<GameCard>> hands, Map<String, String> teams, Suit suit) {
   for (final entry in teams.entries) {
     if (entry.value != 'red') continue;
     final hand = hands[entry.key];
@@ -79,7 +79,7 @@ String? _findHolder(Map<String, List<Card>> hands, Map<String, String> teams, Su
   return null;
 }
 
-Card? applyTributeGive(Map<String, List<Card>> hands, TributePair pair) {
+GameCard? applyTributeGive(Map<String, List<GameCard>> hands, TributePair pair) {
   final loserHand = hands[pair.fromPlayerId];
   if (loserHand == null || loserHand.isEmpty) return null;
 
@@ -91,7 +91,7 @@ Card? applyTributeGive(Map<String, List<Card>> hands, TributePair pair) {
   return highest;
 }
 
-bool applyTributeReceive(Map<String, List<Card>> hands, TributePair pair, Card returnCard) {
+bool applyTributeReceive(Map<String, List<GameCard>> hands, TributePair pair, GameCard returnCard) {
   final winnerHand = hands[pair.toPlayerId];
   if (winnerHand == null) return false;
 

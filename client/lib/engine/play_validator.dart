@@ -9,8 +9,8 @@ class PlayValidationResult {
 }
 
 PlayValidationResult validatePlay(
-  List<Card> selectedCards,
-  List<Card> playerHand,
+  List<GameCard> selectedCards,
+  List<GameCard> playerHand,
   BoardState? boardState,
   bool isFirstTrick,
   bool isTrickLeader,
@@ -55,7 +55,7 @@ PlayValidationResult validatePlay(
   return PlayValidationResult(valid: true, playInfo: playInfo);
 }
 
-List<List<Card>> getAllLegalPlays(List<Card> hand, BoardState? boardState) {
+List<List<GameCard>> getAllLegalPlays(List<GameCard> hand, BoardState? boardState) {
   final allPlays = _getAllPossiblePlays(hand);
   if (boardState == null) return allPlays;
 
@@ -68,8 +68,8 @@ List<List<Card>> getAllLegalPlays(List<Card> hand, BoardState? boardState) {
   }).toList();
 }
 
-List<List<Card>> _getAllPossiblePlays(List<Card> hand) {
-  final plays = <List<Card>>[];
+List<List<GameCard>> _getAllPossiblePlays(List<GameCard> hand) {
+  final plays = <List<GameCard>>[];
   final n = hand.length;
 
   for (var i = 0; i < n; i++) {
@@ -93,7 +93,7 @@ List<List<Card>> _getAllPossiblePlays(List<Card> hand) {
     }
   }
 
-  final byRank = <int, List<Card>>{};
+  final byRank = <int, List<GameCard>>{};
   for (final card in hand) {
     byRank.putIfAbsent(card.rankValue, () => []).add(card);
   }
@@ -110,6 +110,6 @@ List<List<Card>> _getAllPossiblePlays(List<Card> hand) {
   return plays;
 }
 
-extension on Iterable<Card> {
-  Card? get firstOrNull => isEmpty ? null : first;
+extension on Iterable<GameCard> {
+  GameCard? get firstOrNull => isEmpty ? null : first;
 }

@@ -30,17 +30,17 @@ class GameNotifier extends StateNotifier<GameState> {
   void _setupListeners() {
     _subDealt = _socket.on<Map<String, dynamic>>('game:dealt').listen((data) {
       final hand = (data['hand'] as List)
-          .map((c) => Card.fromJson(c as Map<String, dynamic>))
+          .map((c) => GameCard.fromJson(c as Map<String, dynamic>))
           .toList();
       state = state.copyWith(phase: 'DEALT', hand: hand);
     });
 
     _subIdentityPhase = _socket.on<Map<String, dynamic>>('game:identity-phase').listen((data) {
       final mustReveal = (data['mustReveal'] as List?)
-          ?.map((c) => Card.fromJson(c as Map<String, dynamic>))
+          ?.map((c) => GameCard.fromJson(c as Map<String, dynamic>))
           .toList() ?? [];
       final canReveal = (data['canReveal'] as List?)
-          ?.map((c) => Card.fromJson(c as Map<String, dynamic>))
+          ?.map((c) => GameCard.fromJson(c as Map<String, dynamic>))
           .toList() ?? [];
       state = state.copyWith(
         phase: 'IDENTITY_REVEAL',
@@ -56,7 +56,7 @@ class GameNotifier extends StateNotifier<GameState> {
       if (data['board'] != null) {
         final b = data['board'] as Map<String, dynamic>;
         board = BoardState(
-          cards: (b['cards'] as List).map((c) => Card.fromJson(c as Map<String, dynamic>)).toList(),
+          cards: (b['cards'] as List).map((c) => GameCard.fromJson(c as Map<String, dynamic>)).toList(),
           playType: PlayType.values.firstWhere((t) => t.name == b['playType']),
           playedByPlayerId: b['playedByPlayerId'] as String,
         );
@@ -74,7 +74,7 @@ class GameNotifier extends StateNotifier<GameState> {
     _subCardsPlayed = _socket.on<Map<String, dynamic>>('game:cards-played').listen((data) {
       final playerId = data['playerId'] as String;
       final cards = (data['cards'] as List)
-          .map((c) => Card.fromJson(c as Map<String, dynamic>))
+          .map((c) => GameCard.fromJson(c as Map<String, dynamic>))
           .toList();
       final playType = PlayType.values.firstWhere((t) => t.name == data['playType']);
       state = state.copyWith(

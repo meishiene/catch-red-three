@@ -32,7 +32,7 @@ BoardState? getBoardState(TrickStateData trick) {
   );
 }
 
-void processPlay(TrickStateData trick, String playerId, List<Card> cards, PlayInfo playInfo) {
+void processPlay(TrickStateData trick, String playerId, List<GameCard> cards, PlayInfo playInfo) {
   trick.boardCards = cards;
   trick.boardPlay = playInfo;
   trick.boardPlayerId = playerId;

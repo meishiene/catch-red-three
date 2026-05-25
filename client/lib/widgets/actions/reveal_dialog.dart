@@ -3,8 +3,8 @@ import '../../engine/types.dart';
 import '../cards/playing_card_widget.dart';
 
 class RevealDialog extends StatelessWidget {
-  final List<Card> mustReveal;
-  final List<Card> canReveal;
+  final List<GameCard> mustReveal;
+  final List<GameCard> canReveal;
   final Function(List<String>) onReveal;
   final VoidCallback onSkip;
 

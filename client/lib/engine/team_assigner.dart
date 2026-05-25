@@ -1,6 +1,6 @@
 import 'types.dart';
 
-Map<String, String> assignTeams(Map<String, List<Card>> hands) {
+Map<String, String> assignTeams(Map<String, List<GameCard>> hands) {
   final teams = <String, String>{};
   final redThreeHolders = <String>[];
 

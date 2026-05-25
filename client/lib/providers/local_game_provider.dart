@@ -24,17 +24,17 @@ class LocalGameNotifier extends StateNotifier<GameState> {
     switch (event) {
       case 'game:dealt':
         final hand = (data['hand'] as List)
-            .map((c) => Card.fromJson(c as Map<String, dynamic>))
+            .map((c) => GameCard.fromJson(c as Map<String, dynamic>))
             .toList();
         state = state.copyWith(phase: 'DEALT', hand: hand);
         break;
 
       case 'game:identity-phase':
         final mustReveal = (data['mustReveal'] as List?)
-            ?.map((c) => Card.fromJson(c as Map<String, dynamic>))
+            ?.map((c) => GameCard.fromJson(c as Map<String, dynamic>))
             .toList() ?? [];
         final canReveal = (data['canReveal'] as List?)
-            ?.map((c) => Card.fromJson(c as Map<String, dynamic>))
+            ?.map((c) => GameCard.fromJson(c as Map<String, dynamic>))
             .toList() ?? [];
         state = state.copyWith(
           phase: 'IDENTITY_REVEAL',
@@ -56,7 +56,7 @@ class LocalGameNotifier extends StateNotifier<GameState> {
           final b = data['board'] as Map<String, dynamic>;
           board = BoardState(
             cards: (b['cards'] as List)
-                .map((c) => Card.fromJson(c as Map<String, dynamic>))
+                .map((c) => GameCard.fromJson(c as Map<String, dynamic>))
                 .toList(),
             playType: PlayType.values.firstWhere((t) => t.name == b['playType']),
             playedByPlayerId: b['playedByPlayerId'] as String,
@@ -74,7 +74,7 @@ class LocalGameNotifier extends StateNotifier<GameState> {
       case 'game:cards-played':
         final playerId = data['playerId'] as String;
         final cards = (data['cards'] as List)
-            .map((c) => Card.fromJson(c as Map<String, dynamic>))
+            .map((c) => GameCard.fromJson(c as Map<String, dynamic>))
             .toList();
         final playType = PlayType.values.firstWhere((t) => t.name == data['playType']);
         state = state.copyWith(
@@ -83,7 +83,7 @@ class LocalGameNotifier extends StateNotifier<GameState> {
         );
         // Remove played cards from hand if it was human
         if (playerId == 'p0') {
-          final newHand = List<Card>.from(state.hand);
+          final newHand = List<GameCard>.from(state.hand);
           for (final c in cards) {
             newHand.removeWhere((h) => h.id == c.id);
           }

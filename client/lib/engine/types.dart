@@ -7,20 +7,23 @@ enum Suit {
 }
 
 enum Rank {
-  FIVE = 5, SIX = 6, SEVEN = 7, EIGHT = 8, NINE = 9, TEN = 10,
-  JACK = 11, QUEEN = 12, KING = 13, ACE = 14, TWO = 15,
-  THREE = 16, FOUR = 17, SMALL_JOKER = 18, BIG_JOKER = 19,
+  FIVE(5), SIX(6), SEVEN(7), EIGHT(8), NINE(9), TEN(10),
+  JACK(11), QUEEN(12), KING(13), ACE(14), TWO(15),
+  THREE(16), FOUR(17), SMALL_JOKER(18), BIG_JOKER(19);
+
+  final int value;
+  const Rank(this.value);
 }
 
-class Card {
+class GameCard {
   final String id;
   final Suit suit;
   final Rank rank;
   bool isRevealed;
 
-  Card({required this.id, required this.suit, required this.rank, this.isRevealed = false});
+  GameCard({required this.id, required this.suit, required this.rank, this.isRevealed = false});
 
-  factory Card.fromJson(Map<String, dynamic> json) => Card(
+  factory GameCard.fromJson(Map<String, dynamic> json) => GameCard(
     id: json['id'] as String,
     suit: Suit.values.firstWhere((s) => s.name == json['suit']),
     rank: Rank.values.firstWhere((r) => r.value == json['rank']),
@@ -48,7 +51,7 @@ class PlayInfo {
 enum GamePhase { WAITING, DEALING, TRIBUTE, IDENTITY_REVEAL, PLAYING, GAME_OVER }
 
 class BoardState {
-  final List<Card> cards;
+  final List<GameCard> cards;
   final PlayType playType;
   final String playedByPlayerId;
   final bool isNewTrick;
@@ -61,7 +64,7 @@ class BoardState {
 }
 
 class TrickStateData {
-  List<Card> boardCards;
+  List<GameCard> boardCards;
   PlayInfo? boardPlay;
   String? boardPlayerId;
   Set<String> activePlayerIds;

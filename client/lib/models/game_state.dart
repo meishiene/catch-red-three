@@ -2,7 +2,7 @@ import '../engine/types.dart';
 
 class GameState {
   final String phase;
-  final List<Card> hand;
+  final List<GameCard> hand;
   final BoardState? board;
   final Map<String, String> teams;
   final List<Map<String, dynamic>> revealedCards;
@@ -14,8 +14,8 @@ class GameState {
   final bool isFirstTrick;
   final String? myTeam;
   final List<String> selectedCardIds;
-  final List<Card> mustRevealCards;
-  final List<Card> canRevealCards;
+  final List<GameCard> mustRevealCards;
+  final List<GameCard> canRevealCards;
   final Map<String, dynamic>? gameOverData;
 
   GameState({
@@ -39,7 +39,7 @@ class GameState {
 
   GameState copyWith({
     String? phase,
-    List<Card>? hand,
+    List<GameCard>? hand,
     BoardState? board,
     Map<String, String>? teams,
     List<Map<String, dynamic>>? revealedCards,
@@ -51,8 +51,8 @@ class GameState {
     bool? isFirstTrick,
     String? myTeam,
     List<String>? selectedCardIds,
-    List<Card>? mustRevealCards,
-    List<Card>? canRevealCards,
+    List<GameCard>? mustRevealCards,
+    List<GameCard>? canRevealCards,
     Map<String, dynamic>? gameOverData,
   }) {
     return GameState(

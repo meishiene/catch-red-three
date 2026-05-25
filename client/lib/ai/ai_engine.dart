@@ -5,12 +5,12 @@ import 'ai_scorer.dart';
 
 class AIDecision {
   final String action;
-  final List<Card>? cards;
+  final List<GameCard>? cards;
   AIDecision({required this.action, this.cards});
 }
 
 AIDecision decideAI(
-  List<Card> hand,
+  List<GameCard> hand,
   BoardState? boardState,
   AIDifficulty difficulty,
   bool isTrickLeader,
@@ -32,7 +32,7 @@ AIDecision decideAI(
   return AIDecision(action: 'play', cards: scored.first.key);
 }
 
-List<Card> aiSelectOpeningPlay(List<Card> hand, AIDifficulty difficulty) {
+List<GameCard> aiSelectOpeningPlay(List<GameCard> hand, AIDifficulty difficulty) {
   final fives = hand.where((c) => c.rank == Rank.FIVE).toList();
   if (difficulty == AIDifficulty.EASY) return [fives.first];
   if (difficulty == AIDifficulty.NORMAL) {
