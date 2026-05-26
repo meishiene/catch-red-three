@@ -34,6 +34,7 @@ AIDecision decideAI(
 
 List<GameCard> aiSelectOpeningPlay(List<GameCard> hand, AIDifficulty difficulty) {
   final fives = hand.where((c) => c.rank == Rank.FIVE).toList();
+  if (fives.isEmpty) return [];
   if (difficulty == AIDifficulty.EASY) return [fives.first];
   if (difficulty == AIDifficulty.NORMAL) {
     if (fives.length >= 4) return fives.sublist(0, 4);
