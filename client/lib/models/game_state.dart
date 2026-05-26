@@ -18,6 +18,7 @@ class GameState {
   final List<GameCard> canRevealCards;
   final Map<String, dynamic>? gameOverData;
   final String? errorMessage;
+  final Map<String, dynamic>? tributeData;
 
   GameState({
     this.phase = 'WAITING',
@@ -37,6 +38,7 @@ class GameState {
     this.canRevealCards = const [],
     this.gameOverData,
     this.errorMessage,
+    this.tributeData,
   });
 
   GameState copyWith({
@@ -57,6 +59,7 @@ class GameState {
     List<GameCard>? canRevealCards,
     Map<String, dynamic>? gameOverData,
     String? errorMessage,
+    Map<String, dynamic>? tributeData,
   }) {
     return GameState(
       phase: phase ?? this.phase,
@@ -76,6 +79,7 @@ class GameState {
       canRevealCards: canRevealCards ?? this.canRevealCards,
       gameOverData: gameOverData ?? this.gameOverData,
       errorMessage: errorMessage ?? this.errorMessage,
+      tributeData: tributeData ?? this.tributeData,
     );
   }
 

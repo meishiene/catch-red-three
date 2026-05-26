@@ -10,6 +10,7 @@ import '../ai/ai_scorer.dart';
 import '../widgets/cards/playing_card_widget.dart';
 import '../widgets/game_table/table_layout.dart';
 import '../widgets/actions/reveal_dialog.dart';
+import '../widgets/actions/tribute_dialog.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -20,6 +21,7 @@ class GameScreen extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<GameScreen> {
   bool _revealDialogShown = false;
+  Map<String, dynamic>? _lastTributeData;
 
   @override
   void initState() {
@@ -96,6 +98,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
     if (gameState.phase != 'IDENTITY_REVEAL') {
       _revealDialogShown = false;
+    }
+
+    // Tribute dialog
+    if (gameState.phase == 'TRIBUTE' &&
+        gameState.tributeData != null &&
+        gameState.tributeData != _lastTributeData) {
+      final data = gameState.tributeData;
+      _lastTributeData = data;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showTributeDialog(context, isSingle, gameState);
+      });
+    }
+    if (gameState.tributeData == null) {
+      _lastTributeData = null;
     }
 
     // Game over
@@ -192,6 +208,27 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           } else {
             ref.read(gameProvider.notifier).skipReveal();
           }
+        },
+      ),
+    );
+  }
+
+  void _showTributeDialog(BuildContext context, bool isSingle, GameState gameState) {
+    if (!isSingle || gameState.tributeData == null) return;
+    final data = gameState.tributeData!;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => TributeDialog(
+        tributeData: data,
+        onContinue: () {
+          Navigator.pop(ctx);
+          ref.read(localGameProvider.notifier).tributeContinue();
+        },
+        onReturnCard: (cardId) {
+          Navigator.pop(ctx);
+          ref.read(localGameProvider.notifier).tributeReturn(cardId);
         },
       ),
     );

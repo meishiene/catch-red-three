@@ -122,6 +122,32 @@ class LocalGameNotifier extends StateNotifier<GameState> {
       case 'game:error':
         state = state.copyWith(errorMessage: data['message'] as String?);
         break;
+
+      case 'game:tribute-give':
+        state = state.copyWith(
+          phase: 'TRIBUTE',
+          tributeData: data,
+        );
+        break;
+
+      case 'game:tribute-return-request':
+        state = state.copyWith(
+          phase: 'TRIBUTE',
+          hand: (data['hand'] as List).cast<GameCard>(),
+          tributeData: data,
+        );
+        break;
+
+      case 'game:tribute-return-done':
+        state = state.copyWith(
+          hand: (data['hand'] as List).cast<GameCard>(),
+          tributeData: null,
+        );
+        break;
+
+      case 'game:tribute-complete':
+        state = state.copyWith(tributeData: null);
+        break;
     }
   }
 
@@ -157,6 +183,14 @@ class LocalGameNotifier extends StateNotifier<GameState> {
 
   void startNewRound() {
     _engine.startNewRound();
+  }
+
+  void tributeReturn(String cardId) {
+    _engine.handleTributeReturn(cardId);
+  }
+
+  void tributeContinue() {
+    _engine.handleTributeContinue();
   }
 
   void clear() {

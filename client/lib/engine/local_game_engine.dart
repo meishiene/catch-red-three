@@ -30,6 +30,9 @@ class LocalGameEngine {
   bool isFirstRound = true;
   GameResult? lastGameResult;
   int firstDealtIndex = 0;
+  List<TributePair> _pendingTributePairs = [];
+  int _currentTributeIndex = 0;
+  bool _waitingForHumanTribute = false;
 
   LocalGameEngine({
     required this.maxPlayers,
@@ -108,26 +111,109 @@ class LocalGameEngine {
   }
 
   void _executeTribute() {
-    final pairs = determineTributePairs(lastGameResult!, teams, hands, maxPlayers);
+    _pendingTributePairs = determineTributePairs(lastGameResult!, teams, hands, maxPlayers);
+    _currentTributeIndex = 0;
+    _waitingForHumanTribute = false;
+    _processNextTribute();
+  }
 
-    for (final pair in pairs) {
-      final card = applyTributeGive(hands, pair);
-      if (card != null) {
-        final winnerHand = hands[pair.toPlayerId] ?? [];
-        GameCard returnCard;
-        if (pair.toPlayerId == 'p0') {
-          // Human chooses (handled via UI)
-          returnCard = winnerHand.first;
-        } else {
-          returnCard = chooseTributeReturnCard(winnerHand, AIDifficulty.NORMAL);
-        }
-        applyTributeReceive(hands, pair, returnCard);
-      }
+  void _processNextTribute() {
+    if (_currentTributeIndex >= _pendingTributePairs.length) {
+      onEvent('game:tribute-complete', {});
+      phase = 'IDENTITY_REVEAL';
+      _startIdentityPhase();
+      return;
     }
 
-    onEvent('game:tribute-complete', {});
-    phase = 'IDENTITY_REVEAL';
-    _startIdentityPhase();
+    final pair = _pendingTributePairs[_currentTributeIndex];
+    final card = applyTributeGive(hands, pair);
+
+    if (card != null) {
+      final winnerId = pair.toPlayerId;
+      final loserId = pair.fromPlayerId;
+
+      if (winnerId == 'p0') {
+        // Human is winner — needs to choose a return card
+        _waitingForHumanTribute = true;
+        onEvent('game:tribute-return-request', {
+          'fromPlayerId': loserId,
+          'fromPlayerName': _playerName(loserId),
+          'receivedCard': card,
+          'hand': List<GameCard>.from(hands['p0'] ?? []),
+        });
+        return;
+      }
+
+      if (loserId == 'p0') {
+        // Human is loser — auto-give highest card, inform and wait
+        _waitingForHumanTribute = true;
+        onEvent('game:tribute-give', {
+          'fromPlayerId': 'p0',
+          'toPlayerId': winnerId,
+          'toPlayerName': _playerName(winnerId),
+          'card': card,
+        });
+        return;
+      }
+
+      // AI winner chooses return card
+      final winnerHand = hands[winnerId] ?? [];
+      final returnCard = chooseTributeReturnCard(winnerHand, AIDifficulty.NORMAL);
+      applyTributeReceive(hands, pair, returnCard);
+    }
+
+    _currentTributeIndex++;
+    Future.delayed(const Duration(milliseconds: 500), _processNextTribute);
+  }
+
+  void handleTributeContinue() {
+    if (!_waitingForHumanTribute) return;
+    _waitingForHumanTribute = false;
+
+    // Process AI return for the current pair (human was loser)
+    final pair = _pendingTributePairs[_currentTributeIndex];
+    final winnerHand = hands[pair.toPlayerId] ?? [];
+    final returnCard = chooseTributeReturnCard(winnerHand, AIDifficulty.NORMAL);
+    applyTributeReceive(hands, pair, returnCard);
+
+    _currentTributeIndex++;
+    _processNextTribute();
+  }
+
+  void handleTributeReturn(String cardId) {
+    if (!_waitingForHumanTribute) return;
+    _waitingForHumanTribute = false;
+
+    final pair = _pendingTributePairs[_currentTributeIndex];
+    final hand = hands['p0'] ?? [];
+    final returnCard = hand.firstWhere((c) => c.id == cardId,
+        orElse: () => hand.first);
+
+    applyTributeReceive(hands, pair, returnCard);
+
+    // Update human hand in UI
+    onEvent('game:cards-remaining', {'counts': _opponentCounts()});
+    onEvent('game:tribute-return-done', {
+      'hand': List<GameCard>.from(hands['p0'] ?? []),
+    });
+
+    _currentTributeIndex++;
+    _processNextTribute();
+  }
+
+  String _playerName(String id) {
+    for (final p in players) {
+      if (p['id'] == id) return p['name'] as String;
+    }
+    return id;
+  }
+
+  Map<String, int> _opponentCounts() {
+    final counts = <String, int>{};
+    for (var i = 1; i < maxPlayers; i++) {
+      counts['p$i'] = hands['p$i']?.length ?? 0;
+    }
+    return counts;
   }
 
   void _startIdentityPhase() {
