@@ -27,6 +27,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void initState() {
     super.initState();
     _checkGameStart();
+    _setupErrorListener();
   }
 
   void _checkGameStart() {
@@ -51,29 +52,43 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
   }
 
+  void _setupErrorListener() {
+    ref.listen(localGameProvider, (_, next) {
+      _showErrorIfNeeded(next);
+    });
+    ref.listen(gameProvider, (_, next) {
+      _showErrorIfNeeded(next);
+    });
+  }
+
+  void _showErrorIfNeeded(GameState state) {
+    if (state.errorMessage == null) return;
+    final msg = state.errorMessage!;
+    final isSingle = ref.read(isSinglePlayerProvider);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      if (isSingle) {
+        ref.read(localGameProvider.notifier).clearError();
+      } else {
+        ref.read(gameProvider.notifier).clearError();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSingle = ref.watch(isSinglePlayerProvider);
     final gameState = isSingle ? ref.watch(localGameProvider) : ref.watch(gameProvider);
-
-    if (gameState.errorMessage != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(gameState.errorMessage!),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          if (isSingle) {
-            ref.read(localGameProvider.notifier).clearError();
-          } else {
-            ref.read(gameProvider.notifier).clearError();
-          }
-        }
-      });
-    }
 
     if (isSingle) {
       return _buildGameContent(context, gameState, isSingle: true);
