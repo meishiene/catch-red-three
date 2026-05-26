@@ -69,7 +69,7 @@ class LocalGameNotifier extends StateNotifier<GameState> {
         final playType = PlayType.values.firstWhere((t) => t.name == data['playType']);
         state = state.copyWith(
           board: BoardState(cards: cards, playType: playType, playedByPlayerId: playerId),
-          currentTurnPlayerId: playerId == 'p0' ? 'p0' : null,
+          currentTurnPlayerId: null,
         );
         // Remove played cards from hand if it was human
         if (playerId == 'p0') {
