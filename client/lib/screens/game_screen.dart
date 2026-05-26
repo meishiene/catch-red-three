@@ -52,12 +52,32 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final isSingle = ref.watch(isSinglePlayerProvider);
+    final gameState = isSingle ? ref.watch(localGameProvider) : ref.watch(gameProvider);
+
+    if (gameState.errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(gameState.errorMessage!),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          // Clear error after showing
+          final notifier = isSingle
+              ? ref.read(localGameProvider.notifier)
+              : ref.read(gameProvider.notifier);
+          notifier.clearError();
+        }
+      });
+    }
 
     if (isSingle) {
-      return _buildGameContent(context, ref.watch(localGameProvider), isSingle: true);
+      return _buildGameContent(context, gameState, isSingle: true);
     } else {
       final roomCode = ref.watch(roomCodeProvider);
-      return _buildGameContent(context, ref.watch(gameProvider),
+      return _buildGameContent(context, gameState,
           isSingle: false, roomCode: roomCode);
     }
   }
@@ -133,6 +153,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               finishOrder: gameState.finishOrder,
               teams: gameState.teams,
               playerNames: _buildPlayerNames(gameState),
+              revealedCards: gameState.revealedCards,
             ),
           ),
           if (gameState.board != null)

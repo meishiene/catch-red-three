@@ -132,6 +132,10 @@ class GameNotifier extends StateNotifier<GameState> {
     _socket.emit('game:skip-reveal');
   }
 
+  void clearError() {
+    state = state.copyWith(errorMessage: null);
+  }
+
   @override
   void dispose() {
     _subDealt?.cancel();

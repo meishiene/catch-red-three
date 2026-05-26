@@ -43,10 +43,14 @@ class LocalGameNotifier extends StateNotifier<GameState> {
       case 'game:identity-phase':
         final mustReveal = (data['mustReveal'] as List?)?.cast<GameCard>() ?? [];
         final canReveal = (data['canReveal'] as List?)?.cast<GameCard>() ?? [];
+        final revCards = (data['revealedCards'] as List?)
+            ?.map((e) => Map<String, dynamic>.from(e))
+            .toList() ?? [];
         state = state.copyWith(
           phase: 'IDENTITY_REVEAL',
           mustRevealCards: mustReveal,
           canRevealCards: canReveal,
+          revealedCards: revCards,
         );
         break;
 
@@ -116,7 +120,7 @@ class LocalGameNotifier extends StateNotifier<GameState> {
         break;
 
       case 'game:error':
-        // Error handling
+        state = state.copyWith(errorMessage: data['message'] as String?);
         break;
     }
   }
@@ -157,6 +161,10 @@ class LocalGameNotifier extends StateNotifier<GameState> {
 
   void clear() {
     state = GameState();
+  }
+
+  void clearError() {
+    state = state.copyWith(errorMessage: null);
   }
 }
 

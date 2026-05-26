@@ -156,6 +156,7 @@ class LocalGameEngine {
     onEvent('game:identity-phase', {
       'mustReveal': eligibility['mustReveal']!,
       'canReveal': eligibility['canReveal']!,
+      'revealedCards': List<Map<String, dynamic>>.from(revealedCards),
     });
 
     // If nothing to reveal, auto-continue

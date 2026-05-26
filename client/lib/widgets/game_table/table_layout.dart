@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 class TableLayout extends StatelessWidget {
@@ -6,6 +7,7 @@ class TableLayout extends StatelessWidget {
   final List<Map<String, dynamic>> finishOrder;
   final Map<String, String> teams;
   final Map<String, String> playerNames;
+  final List<Map<String, dynamic>> revealedCards;
 
   const TableLayout({
     super.key,
@@ -13,6 +15,7 @@ class TableLayout extends StatelessWidget {
     this.currentTurnPlayerId,
     this.finishOrder = const [],
     this.teams = const {},
+    this.revealedCards = const [],
     this.playerNames = const {},
   });
 
@@ -44,14 +47,22 @@ class TableLayout extends StatelessWidget {
               final isTurn = playerId == currentTurnPlayerId;
               final name = playerNames[playerId] ?? (playerId.length > 4 ? playerId.substring(0, 4) : playerId);
               final team = teams[playerId];
+              final hasRevealed = revealedCards.any((r) => r['playerId'] == playerId);
 
-              final double fraction = count <= 1 ? 0.5 : i / (count - 1);
-              final leftPadding = 60.0;
-              final availableWidth = constraints.maxWidth - leftPadding * 2;
-              final xPos = leftPadding + fraction * availableWidth - 40;
+              // Semi-circle arc: positions from angle -150 to -30 degrees (top arc)
+              final startAngle = -2.7;  // ~ -155 degrees
+              final endAngle = -0.45;    // ~ -25 degrees
+              final angle = count <= 1
+                  ? (startAngle + endAngle) / 2
+                  : startAngle + (endAngle - startAngle) * i / (count - 1);
+              final radius = tableSize * 0.75;
+              final centerX = constraints.maxWidth / 2;
+              final centerY = tableSize / 2 + 10;
+              final xPos = centerX + radius * cos(angle) - 40;
+              final yPos = centerY + radius * sin(angle) - 30;
 
               return Positioned(
-                top: 8,
+                top: yPos,
                 left: xPos,
                 child: _OpponentSeat(
                   name: name,
@@ -59,6 +70,7 @@ class TableLayout extends StatelessWidget {
                   isActive: isTurn,
                   isFinished: isFinished,
                   team: team,
+                  hasRevealed: hasRevealed,
                 ),
               );
             }),
@@ -75,6 +87,7 @@ class _OpponentSeat extends StatelessWidget {
   final bool isActive;
   final bool isFinished;
   final String? team;
+  final bool hasRevealed;
 
   const _OpponentSeat({
     required this.name,
@@ -82,6 +95,7 @@ class _OpponentSeat extends StatelessWidget {
     required this.isActive,
     required this.isFinished,
     this.team,
+    this.hasRevealed = false,
   });
 
   @override
@@ -121,6 +135,8 @@ class _OpponentSeat extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(name, style: const TextStyle(fontSize: 11)),
+          if (hasRevealed)
+            const Text('已亮', style: TextStyle(fontSize: 10, color: Colors.orange)),
           if (isFinished)
             const Icon(Icons.check_circle, color: Colors.green, size: 14)
           else
