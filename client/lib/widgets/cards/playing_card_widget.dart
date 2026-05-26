@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../engine/types.dart';
-import '../../engine/card.dart';
+import '../../theme/app_theme.dart';
 
 class PlayingCardWidget extends StatelessWidget {
   final GameCard card;
   final bool faceUp;
   final double size;
+  final bool isSelected;
 
   const PlayingCardWidget({
     super.key,
     required this.card,
     this.faceUp = true,
     this.size = 80,
+    this.isSelected = false,
   });
 
   @override
@@ -19,14 +21,18 @@ class PlayingCardWidget extends StatelessWidget {
     if (!faceUp) return _buildCardBack();
 
     return Container(
-      width: size * 0.7,
+      width: size * 0.72,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.black26),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(1, 1)),
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.black12, width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 4,
+            offset: const Offset(1, 2),
+          ),
         ],
       ),
       child: Column(
@@ -35,16 +41,19 @@ class PlayingCardWidget extends StatelessWidget {
           Text(
             _rankText,
             style: TextStyle(
-              fontSize: size * 0.28,
+              fontSize: size * 0.30,
               fontWeight: FontWeight.bold,
-              color: _isRed ? Colors.red : Colors.black87,
+              color: _isRed ? Colors.red.shade700 : Colors.black87,
+              height: 1.0,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
-            _suitText,
+            _suitSymbol,
             style: TextStyle(
-              fontSize: size * 0.22,
-              color: _isRed ? Colors.red : Colors.black87,
+              fontSize: size * 0.24,
+              color: _isRed ? Colors.red.shade600 : Colors.black87,
+              height: 1.0,
             ),
           ),
         ],
@@ -54,18 +63,43 @@ class PlayingCardWidget extends StatelessWidget {
 
   Widget _buildCardBack() {
     return Container(
-      width: size * 0.7,
+      width: size * 0.72,
       height: size,
       decoration: BoxDecoration(
-        color: const Color(0xFF1A5276),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.blueGrey),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(1, 1)),
+        borderRadius: BorderRadius.circular(8),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1A5276), Color(0xFF0D3B56)],
+        ),
+        border: Border.all(color: AppColors.gold.withOpacity(0.3), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 4,
+            offset: const Offset(1, 2),
+          ),
         ],
       ),
-      child: const Center(
-        child: Text('🀄', style: TextStyle(fontSize: 24)),
+      child: Center(
+        child: Container(
+          width: size * 0.45,
+          height: size * 0.65,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: AppColors.gold.withOpacity(0.3), width: 1),
+          ),
+          child: Center(
+            child: Text(
+              '抓',
+              style: TextStyle(
+                fontSize: size * 0.25,
+                color: AppColors.gold.withOpacity(0.8),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -90,7 +124,7 @@ class PlayingCardWidget extends StatelessWidget {
     }
   }
 
-  String get _suitText {
+  String get _suitSymbol {
     switch (card.suit) {
       case Suit.S: return '♠';
       case Suit.H: return '♥';
@@ -100,7 +134,5 @@ class PlayingCardWidget extends StatelessWidget {
     }
   }
 
-  bool get _isRed {
-    return card.suit == Suit.H || card.suit == Suit.D;
-  }
+  bool get _isRed => card.suit == Suit.H || card.suit == Suit.D;
 }

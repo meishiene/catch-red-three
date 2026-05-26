@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_provider.dart';
 import '../services/socket_service.dart';
+import '../theme/app_theme.dart';
 
 class CreateRoomScreen extends ConsumerStatefulWidget {
   const CreateRoomScreen({super.key});
@@ -16,40 +17,58 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('创建房间')),
-      body: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('选择游戏人数', style: TextStyle(fontSize: 20)),
-            const SizedBox(height: 32),
-            Row(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF1A3A1A), AppColors.tableDark],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [3, 4, 5].map((n) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: ChoiceChip(
-                  label: Text('$n人'),
-                  selected: _selectedPlayers == n,
-                  onSelected: (_) => setState(() => _selectedPlayers = n),
+              children: [
+                const Text('选择游戏人数', style: TextStyle(fontSize: 20, color: Colors.white)),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [3, 4, 5].map((n) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ChoiceChip(
+                      label: Text('$n人', style: TextStyle(
+                        color: _selectedPlayers == n ? Colors.black87 : Colors.white70,
+                      )),
+                      selected: _selectedPlayers == n,
+                      selectedColor: AppColors.gold,
+                      backgroundColor: Colors.white10,
+                      checkmarkColor: Colors.black87,
+                      onSelected: (_) => setState(() => _selectedPlayers = n),
+                    ),
+                  )).toList(),
                 ),
-              )).toList(),
-            ),
-            const SizedBox(height: 48),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: _createRoom,
-                icon: const Icon(Icons.add),
-                label: const Text('创建房间'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD4380D),
-                  foregroundColor: Colors.white,
+                const SizedBox(height: 48),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _createRoom,
+                    icon: const Icon(Icons.add),
+                    label: const Text('创建房间', style: TextStyle(fontSize: 16)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryRed,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

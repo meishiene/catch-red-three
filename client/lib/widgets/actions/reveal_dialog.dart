@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../engine/types.dart';
+import '../../theme/app_theme.dart';
 import '../cards/playing_card_widget.dart';
 
 class RevealDialog extends StatelessWidget {
@@ -22,7 +23,13 @@ class RevealDialog extends StatelessWidget {
 
     return StatefulBuilder(
       builder: (context, setState) => AlertDialog(
-        title: const Text('亮明身份'),
+        title: const Row(
+          children: [
+            Icon(Icons.visibility, color: AppColors.gold, size: 22),
+            SizedBox(width: 8),
+            Text('亮明身份', style: TextStyle(color: Colors.white)),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -39,7 +46,7 @@ class RevealDialog extends StatelessWidget {
               const SizedBox(height: 16),
             ],
             if (canReveal.isNotEmpty) ...[
-              const Text('可选择亮明:', style: TextStyle(color: Colors.blue)),
+              const Text('可选择亮明:', style: TextStyle(color: AppColors.gold)),
               const SizedBox(height: 8),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -77,13 +84,16 @@ class RevealDialog extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: onSkip,
-            child: const Text('跳过'),
+            child: const Text('跳过', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () => onReveal(selectedIds.toList()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD4380D),
+              backgroundColor: AppColors.primaryRed,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('亮明'),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../engine/types.dart';
+import '../../theme/app_theme.dart';
 import '../cards/playing_card_widget.dart';
 
 class TributeDialog extends StatefulWidget {
@@ -104,7 +105,7 @@ class _TributeDialogState extends State<TributeDialog> {
           onPressed: _selectedCardId != null
               ? () => widget.onReturnCard(_selectedCardId!)
               : null,
-          child: const Text('回赠'),
+          child: const Text('回赠', style: TextStyle(color: AppColors.gold)),
         ),
       ];
     }
@@ -112,8 +113,9 @@ class _TributeDialogState extends State<TributeDialog> {
       ElevatedButton(
         onPressed: widget.onContinue,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFD4380D),
+          backgroundColor: AppColors.primaryRed,
           foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
         child: const Text('继续'),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/create_room_screen.dart';
 import 'screens/join_room_screen.dart';
@@ -16,15 +17,7 @@ class CatchRedThreeApp extends StatelessWidget {
     return MaterialApp(
       title: '抓红3',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFD4380D),
-          brightness: Brightness.dark,
-        ),
-        scaffoldBackgroundColor: const Color(0xFF1A1A2E),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-      ),
+      theme: AppTheme.darkTheme,
       initialRoute: '/',
       routes: {
         '/': (_) => const HomeScreen(),

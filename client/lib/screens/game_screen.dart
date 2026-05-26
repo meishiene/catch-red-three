@@ -5,8 +5,8 @@ import '../providers/game_provider.dart';
 import '../providers/local_game_provider.dart';
 import '../models/game_state.dart';
 import '../engine/types.dart';
-import '../engine/card.dart';
 import '../ai/ai_scorer.dart';
+import '../theme/app_theme.dart';
 import '../widgets/cards/playing_card_widget.dart';
 import '../widgets/game_table/table_layout.dart';
 import '../widgets/actions/reveal_dialog.dart';
@@ -66,7 +66,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               duration: const Duration(seconds: 2),
             ),
           );
-          // Clear error after showing
           if (isSingle) {
             ref.read(localGameProvider.notifier).clearError();
           } else {
@@ -85,114 +84,311 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
   }
 
-  Widget _buildGameContent(BuildContext context, GameState gameState, {
+  Widget _buildGameContent(BuildContext context, GameState state, {
     bool isSingle = false,
     String? roomCode,
   }) {
-    // Identity reveal dialog
-    if (gameState.phase == 'IDENTITY_REVEAL' && !_revealDialogShown) {
+    _checkDialogs(context, state, isSingle);
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: _buildAppBar(state, isSingle, roomCode),
+      body: Container(
+        decoration: AppTheme.tableDecoration,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Opponent area
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.22,
+                child: TableLayout(
+                  opponentCounts: state.opponentCardCounts,
+                  currentTurnPlayerId: state.currentTurnPlayerId,
+                  finishOrder: state.finishOrder,
+                  teams: state.teams,
+                  playerNames: _buildPlayerNames(state),
+                  revealedCards: state.revealedCards,
+                ),
+              ),
+              // Center: board cards or phase info
+              _buildCenterInfo(state),
+              const Spacer(),
+              // Hand area
+              _buildHandArea(state, isSingle),
+              const SizedBox(height: 8),
+              // Action buttons
+              if (state.currentTurnPlayerId != null && state.phase == 'PLAYING')
+                _buildActionBar(state, isSingle),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(GameState state, bool isSingle, String? roomCode) {
+    return AppBar(
+      title: Text(isSingle ? '人机对战' : '房间: ${roomCode ?? ""}'),
+      actions: [
+        if (state.myTeam != null)
+          _TeamChip(team: state.myTeam!),
+        if (state.phase == 'PLAYING')
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Chip(
+              label: Text('${state.hand.length}张',
+                style: const TextStyle(color: Colors.white, fontSize: 13)),
+              backgroundColor: Colors.black38,
+              side: BorderSide.none,
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _checkDialogs(BuildContext context, GameState state, bool isSingle) {
+    // Identity reveal
+    if (state.phase == 'IDENTITY_REVEAL' && !_revealDialogShown) {
       _revealDialogShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showRevealDialog(context, isSingle, gameState);
+        _showRevealDialog(context, isSingle, state);
       });
     }
-    if (gameState.phase != 'IDENTITY_REVEAL') {
+    if (state.phase != 'IDENTITY_REVEAL') {
       _revealDialogShown = false;
     }
 
-    // Tribute dialog
-    if (gameState.phase == 'TRIBUTE' &&
-        gameState.tributeData != null &&
-        gameState.tributeData != _lastTributeData) {
-      final data = gameState.tributeData;
+    // Tribute
+    if (state.phase == 'TRIBUTE' &&
+        state.tributeData != null &&
+        state.tributeData != _lastTributeData) {
+      final data = state.tributeData;
       _lastTributeData = data;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showTributeDialog(context, isSingle, gameState);
+        _showTributeDialog(context, isSingle, state);
       });
     }
-    if (gameState.tributeData == null) {
+    if (state.tributeData == null) {
       _lastTributeData = null;
     }
 
     // Game over
-    if (gameState.phase == 'GAME_OVER') {
+    if (state.phase == 'GAME_OVER') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/game-result');
       });
     }
+  }
 
-    final notifier = isSingle
-        ? ref.read(localGameProvider.notifier)
-        : ref.read(gameProvider.notifier);
+  Widget _buildCenterInfo(GameState state) {
+    if (state.board != null) {
+      return _buildBoardCards(state.board!);
+    }
+    if (state.phase == 'DEALT' || state.phase == 'WAITING') {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Text('发牌中...', style: TextStyle(color: Colors.white54, fontSize: 16)),
+      );
+    }
+    if (state.phase == 'TRIBUTE') {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Text('进贡阶段...', style: TextStyle(color: AppColors.gold, fontSize: 16)),
+      );
+    }
+    return const SizedBox(height: 8);
+  }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isSingle ? '人机对战' : '房间: ${roomCode ?? ""}'),
-        actions: [
-          if (gameState.myTeam != null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: gameState.myTeam == 'red'
-                        ? const Color(0xFFD4380D).withOpacity(0.3)
-                        : Colors.grey.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    gameState.myTeam == 'red' ? '红队' : '黑队',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: gameState.myTeam == 'red' ? Colors.red : Colors.white70,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          if (gameState.phase == 'PLAYING')
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Text('手牌: ${gameState.hand.length}张',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-        ],
+  Widget _buildBoardCards(BoardState board) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
       ),
-      body: Column(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            flex: 3,
-            child: TableLayout(
-              opponentCounts: gameState.opponentCardCounts,
-              currentTurnPlayerId: gameState.currentTurnPlayerId,
-              finishOrder: gameState.finishOrder,
-              teams: gameState.teams,
-              playerNames: _buildPlayerNames(gameState),
-              revealedCards: gameState.revealedCards,
+          Text(
+            _playTypeLabel(board.playType),
+            style: TextStyle(
+              color: AppColors.gold,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          if (gameState.board != null)
-            _buildCenterPlayArea(gameState.board!),
-          Expanded(
-            flex: 4,
-            child: _buildMyHand(gameState, notifier),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: board.cards.map((c) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: PlayingCardWidget(card: c, size: 72),
+            )).toList(),
           ),
-          if (gameState.currentTurnPlayerId != null)
-            _buildActionButtons(gameState, notifier),
+          const SizedBox(height: 4),
+          Text(
+            board.playedByPlayerId,
+            style: const TextStyle(color: Colors.white38, fontSize: 11),
+          ),
         ],
       ),
     );
   }
 
-  void _showRevealDialog(BuildContext context, bool isSingle, GameState gameState) {
+  String _playTypeLabel(PlayType type) {
+    switch (type) {
+      case PlayType.SINGLE: return '单张';
+      case PlayType.PAIR: return '对子';
+      case PlayType.BOMB: return '炸弹!';
+      case PlayType.BIG_BOMB: return '大炸弹!!';
+      case PlayType.JOKER_BOMB: return '王炸!!!';
+    }
+  }
+
+  Widget _buildHandArea(GameState state, bool isSingle) {
+    if (state.hand.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text('等待发牌...', style: TextStyle(color: Colors.white38)),
+      );
+    }
+
+    final sorted = List<GameCard>.from(state.hand);
+
+    return SizedBox(
+      height: 110,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: sorted.length,
+        itemBuilder: (_, i) {
+          final card = sorted[i];
+          final sel = state.selectedCardIds.contains(card.id);
+          final canPlay = state.currentTurnPlayerId != null;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: GestureDetector(
+              onTap: canPlay
+                  ? () {
+                      if (isSingle) {
+                        ref.read(localGameProvider.notifier).toggleCardSelection(card.id);
+                      } else {
+                        ref.read(gameProvider.notifier).toggleCardSelection(card.id);
+                      }
+                    }
+                  : null,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOutBack,
+                transform: sel
+                    ? (Matrix4.identity()..translate(0.0, -18.0))
+                    : Matrix4.identity(),
+                child: PlayingCardWidget(
+                  card: card,
+                  size: 96,
+                  isSelected: sel,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildActionBar(GameState state, bool isSingle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Row(
+        children: [
+          if (!state.isFirstTrick || state.board != null)
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: () {
+                    if (isSingle) {
+                      ref.read(localGameProvider.notifier).pass();
+                    } else {
+                      ref.read(gameProvider.notifier).pass();
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: const BorderSide(color: Colors.white30),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text('过牌', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+          if (!state.isFirstTrick || state.board != null)
+            const SizedBox(width: 16),
+          Expanded(
+            flex: 2,
+            child: SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: state.selectedCardIds.isNotEmpty
+                    ? () {
+                        if (isSingle) {
+                          ref.read(localGameProvider.notifier).playSelectedCards();
+                        } else {
+                          ref.read(gameProvider.notifier).playSelectedCards();
+                        }
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryRed,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.white12,
+                  disabledForegroundColor: Colors.white30,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: state.selectedCardIds.isNotEmpty ? 4 : 0,
+                  shadowColor: AppColors.primaryRed.withOpacity(0.4),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('出牌', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                    if (state.selectedCardIds.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${state.selectedCardIds.length}',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRevealDialog(BuildContext context, bool isSingle, GameState state) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => RevealDialog(
-        mustReveal: gameState.mustRevealCards,
-        canReveal: gameState.canRevealCards,
+        mustReveal: state.mustRevealCards,
+        canReveal: state.canRevealCards,
         onReveal: (cardIds) {
           Navigator.pop(ctx);
           if (isSingle) {
@@ -213,9 +409,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  void _showTributeDialog(BuildContext context, bool isSingle, GameState gameState) {
-    if (!isSingle || gameState.tributeData == null) return;
-    final data = gameState.tributeData!;
+  void _showTributeDialog(BuildContext context, bool isSingle, GameState state) {
+    if (!isSingle || state.tributeData == null) return;
+    final data = state.tributeData!;
 
     showDialog(
       context: context,
@@ -234,126 +430,46 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  Widget _buildCenterPlayArea(BoardState board) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(horizontal: 32),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            _playTypeLabel(board.playType),
-            style: const TextStyle(color: Colors.orange, fontSize: 14),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: board.cards.map((c) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: PlayingCardWidget(card: c, faceUp: true, size: 60),
-            )).toList(),
-          ),
-          Text(
-            board.playedByPlayerId,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-
   Map<String, String> _buildPlayerNames(GameState state) {
     final names = <String, String>{};
     for (final id in state.opponentCardCounts.keys) {
       final num = id.replaceAll('p', '');
-      names[id] = '电脑$num';
+      final n = int.tryParse(num);
+      names[id] = n != null && n > 0 ? '电脑$n' : id;
     }
     return names;
   }
+}
 
-  String _playTypeLabel(PlayType type) {
-    switch (type) {
-      case PlayType.SINGLE: return '单张';
-      case PlayType.PAIR: return '对子';
-      case PlayType.BOMB: return '炸弹!';
-      case PlayType.BIG_BOMB: return '大炸弹!!';
-      case PlayType.JOKER_BOMB: return '王炸!!!';
-    }
-  }
+class _TeamChip extends StatelessWidget {
+  final String team;
+  const _TeamChip({required this.team});
 
-  Widget _buildMyHand(GameState state, dynamic notifier) {
-    if (state.hand.isEmpty) {
-      return const Center(child: Text('等待发牌...', style: TextStyle(color: Colors.grey)));
-    }
-
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: state.hand.map((card) {
-                final isSelected = state.selectedCardIds.contains(card.id);
-                return GestureDetector(
-                  onTap: () {
-                    if (state.currentTurnPlayerId != null) {
-                      notifier.toggleCardSelection(card.id);
-                    }
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    transform: isSelected
-                        ? Matrix4.translationValues(0, -16, 0)
-                        : Matrix4.identity(),
-                    child: PlayingCardWidget(card: card, faceUp: true, size: 80),
-                  ),
-                );
-              }).toList(),
-            ),
+  @override
+  Widget build(BuildContext context) {
+    final isRed = team == 'red';
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isRed
+              ? AppColors.redTeam.withOpacity(0.25)
+              : Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isRed ? AppColors.redTeam : Colors.white30,
+            width: 1,
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons(GameState state, dynamic notifier) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (!state.isFirstTrick || state.board != null)
-            SizedBox(
-              width: 120,
-              height: 48,
-              child: OutlinedButton(
-                onPressed: () => notifier.pass(),
-                child: const Text('过牌'),
-              ),
-            ),
-          const SizedBox(width: 24),
-          SizedBox(
-            width: 120,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: state.selectedCardIds.isNotEmpty
-                  ? () => notifier.playSelectedCards()
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD4380D),
-              ),
-              child: Text('出牌 (${state.selectedCardIds.length})'),
-            ),
+        child: Text(
+          isRed ? '红队' : '黑队',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isRed ? AppColors.redTeam : Colors.white70,
           ),
-        ],
+        ),
       ),
     );
   }

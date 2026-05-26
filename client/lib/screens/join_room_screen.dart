@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_provider.dart';
 import '../services/socket_service.dart';
+import '../theme/app_theme.dart';
 
 class JoinRoomScreen extends ConsumerStatefulWidget {
   const JoinRoomScreen({super.key});
@@ -22,40 +23,60 @@ class _JoinRoomScreenState extends ConsumerState<JoinRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('加入房间')),
-      body: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('输入房间码', style: TextStyle(fontSize: 20)),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _codeController,
-              textAlign: TextAlign.center,
-              maxLength: 6,
-              style: const TextStyle(fontSize: 32, letterSpacing: 8),
-              textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                counterText: '',
-              ),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: _joinRoom,
-                icon: const Icon(Icons.login),
-                label: const Text('加入房间'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD4380D),
-                  foregroundColor: Colors.white,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF1A3A1A), AppColors.tableDark],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('输入房间码', style: TextStyle(fontSize: 20, color: Colors.white)),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: _codeController,
+                  textAlign: TextAlign.center,
+                  maxLength: 6,
+                  style: const TextStyle(fontSize: 32, letterSpacing: 8, color: Colors.white),
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    counterText: '',
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.gold),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _joinRoom,
+                    icon: const Icon(Icons.login),
+                    label: const Text('加入房间', style: TextStyle(fontSize: 16)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryRed,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
