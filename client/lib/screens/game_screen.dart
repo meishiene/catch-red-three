@@ -65,10 +65,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ),
           );
           // Clear error after showing
-          final notifier = isSingle
-              ? ref.read(localGameProvider.notifier)
-              : ref.read(gameProvider.notifier);
-          notifier.clearError();
+          if (isSingle) {
+            ref.read(localGameProvider.notifier).clearError();
+          } else {
+            ref.read(gameProvider.notifier).clearError();
+          }
         }
       });
     }
