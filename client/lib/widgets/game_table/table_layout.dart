@@ -4,12 +4,16 @@ class TableLayout extends StatelessWidget {
   final Map<String, int> opponentCounts;
   final String? currentTurnPlayerId;
   final List<Map<String, dynamic>> finishOrder;
+  final Map<String, String> teams;
+  final Map<String, String> playerNames;
 
   const TableLayout({
     super.key,
     required this.opponentCounts,
     this.currentTurnPlayerId,
     this.finishOrder = const [],
+    this.teams = const {},
+    this.playerNames = const {},
   });
 
   @override
@@ -24,7 +28,6 @@ class TableLayout extends StatelessWidget {
         return Stack(
           alignment: Alignment.center,
           children: [
-            // Table center
             Container(
               width: tableSize,
               height: tableSize,
@@ -34,18 +37,18 @@ class TableLayout extends StatelessWidget {
                 border: Border.all(color: const Color(0xFF4CAF50), width: 2),
               ),
             ),
-            // Opponent seats distributed across the top
             ...List.generate(count, (i) {
               final entry = opponents[i];
-              final isFinished = finishOrder.any((f) => f['playerId'] == entry.key);
-              final isTurn = entry.key == currentTurnPlayerId;
-              final name = entry.key.length > 4 ? entry.key.substring(0, 4) : entry.key;
+              final playerId = entry.key;
+              final isFinished = finishOrder.any((f) => f['playerId'] == playerId);
+              final isTurn = playerId == currentTurnPlayerId;
+              final name = playerNames[playerId] ?? (playerId.length > 4 ? playerId.substring(0, 4) : playerId);
+              final team = teams[playerId];
 
-              // Distribute seats evenly: calculate x position as fraction of width
               final double fraction = count <= 1 ? 0.5 : i / (count - 1);
               final leftPadding = 60.0;
               final availableWidth = constraints.maxWidth - leftPadding * 2;
-              final xPos = leftPadding + fraction * availableWidth - 40; // 40 = half seat width
+              final xPos = leftPadding + fraction * availableWidth - 40;
 
               return Positioned(
                 top: 8,
@@ -55,6 +58,7 @@ class TableLayout extends StatelessWidget {
                   cardCount: isFinished ? 0 : entry.value,
                   isActive: isTurn,
                   isFinished: isFinished,
+                  team: team,
                 ),
               );
             }),
@@ -70,16 +74,25 @@ class _OpponentSeat extends StatelessWidget {
   final int cardCount;
   final bool isActive;
   final bool isFinished;
+  final String? team;
 
   const _OpponentSeat({
     required this.name,
     required this.cardCount,
     required this.isActive,
     required this.isFinished,
+    this.team,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isRed = team == 'red';
+    final teamColor = team == null
+        ? Colors.grey
+        : isRed
+            ? const Color(0xFFD4380D)
+            : Colors.grey;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       width: 80,
@@ -87,19 +100,24 @@ class _OpponentSeat extends StatelessWidget {
       decoration: BoxDecoration(
         color: isActive
             ? const Color(0xFFD4380D).withOpacity(0.2)
-            : Colors.white.withOpacity(0.1),
+            : teamColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
         border: isActive
             ? Border.all(color: const Color(0xFFD4380D), width: 2)
-            : null,
+            : isRed
+                ? Border.all(color: teamColor, width: 1)
+                : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           CircleAvatar(
             radius: 14,
-            backgroundColor: isActive ? const Color(0xFFD4380D) : Colors.grey,
-            child: Text(name[0], style: const TextStyle(fontSize: 12)),
+            backgroundColor: isActive ? const Color(0xFFD4380D) : teamColor,
+            child: Text(
+              isRed ? '红' : name[0],
+              style: const TextStyle(fontSize: 11, color: Colors.white),
+            ),
           ),
           const SizedBox(height: 4),
           Text(name, style: const TextStyle(fontSize: 11)),

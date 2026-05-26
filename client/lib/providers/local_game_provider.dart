@@ -24,7 +24,20 @@ class LocalGameNotifier extends StateNotifier<GameState> {
     switch (event) {
       case 'game:dealt':
         final hand = (data['hand'] as List).cast<GameCard>();
-        state = state.copyWith(phase: 'DEALT', hand: hand);
+        final teams = data['teams'] != null
+            ? Map<String, String>.from(data['teams'] as Map)
+            : <String, String>{};
+        final opponentCounts = data['opponentCounts'] != null
+            ? Map<String, int>.from(data['opponentCounts'] as Map)
+            : <String, int>{};
+        final myTeam = data['myTeam'] as String?;
+        state = state.copyWith(
+          phase: 'DEALT',
+          hand: hand,
+          teams: teams,
+          opponentCardCounts: opponentCounts,
+          myTeam: myTeam,
+        );
         break;
 
       case 'game:identity-phase':

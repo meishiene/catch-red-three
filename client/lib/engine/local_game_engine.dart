@@ -80,16 +80,22 @@ class LocalGameEngine {
 
     // Send hand to human player
     final humanHand = hands['p0'] ?? [];
-    onEvent('game:dealt', {
-      'hand': humanHand,
-      'totalPlayers': maxPlayers,
-    });
-
-    // Determine opponent card counts
     final opponentCounts = <String, int>{};
     for (var i = 1; i < maxPlayers; i++) {
       opponentCounts['p$i'] = hands['p$i']?.length ?? 0;
     }
+    final playerNames = <String, String>{};
+    for (final p in players) {
+      playerNames[p['id'] as String] = p['name'] as String;
+    }
+    onEvent('game:dealt', {
+      'hand': humanHand,
+      'totalPlayers': maxPlayers,
+      'teams': teams,
+      'opponentCounts': opponentCounts,
+      'myTeam': teams['p0'] ?? 'black',
+      'playerNames': playerNames,
+    });
 
     // Tribute phase for non-first rounds
     if (!isFirstRound && lastGameResult != null && lastGameResult!.winner != 'draw') {

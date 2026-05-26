@@ -30,6 +30,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void _checkGameStart() {
     final isSingle = ref.read(isSinglePlayerProvider);
     if (isSingle) {
+      final currentPhase = ref.read(localGameProvider).phase;
+      if (currentPhase != 'WAITING' && currentPhase != 'GAME_OVER') return;
       final difficultyStr = ref.read(aiDifficultyProvider);
       final difficulty = AIDifficulty.values.firstWhere(
         (d) => d.name == difficultyStr,
@@ -90,14 +92,33 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       appBar: AppBar(
         title: Text(isSingle ? '人机对战' : '房间: ${roomCode ?? ""}'),
         actions: [
-          if (gameState.phase == 'PLAYING')
+          if (gameState.myTeam != null)
             Center(
               child: Padding(
                 padding: const EdgeInsets.only(right: 16),
-                child: Text(
-                  '手牌: ${gameState.hand.length}张',
-                  style: const TextStyle(fontSize: 16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: gameState.myTeam == 'red'
+                        ? const Color(0xFFD4380D).withOpacity(0.3)
+                        : Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    gameState.myTeam == 'red' ? '红队' : '黑队',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: gameState.myTeam == 'red' ? Colors.red : Colors.white70,
+                    ),
+                  ),
                 ),
+              ),
+            ),
+          if (gameState.phase == 'PLAYING')
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Text('手牌: ${gameState.hand.length}张',
+                style: const TextStyle(fontSize: 16),
               ),
             ),
         ],
@@ -110,6 +131,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               opponentCounts: gameState.opponentCardCounts,
               currentTurnPlayerId: gameState.currentTurnPlayerId,
               finishOrder: gameState.finishOrder,
+              teams: gameState.teams,
+              playerNames: _buildPlayerNames(gameState),
             ),
           ),
           if (gameState.board != null)
@@ -182,6 +205,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ],
       ),
     );
+  }
+
+  Map<String, String> _buildPlayerNames(GameState state) {
+    final names = <String, String>{};
+    for (final id in state.opponentCardCounts.keys) {
+      final num = id.replaceAll('p', '');
+      names[id] = '电脑$num';
+    }
+    return names;
   }
 
   String _playTypeLabel(PlayType type) {
