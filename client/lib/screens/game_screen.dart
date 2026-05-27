@@ -27,7 +27,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void initState() {
     super.initState();
     _checkGameStart();
-    _setupErrorListener();
   }
 
   void _checkGameStart() {
@@ -50,15 +49,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         );
       });
     }
-  }
-
-  void _setupErrorListener() {
-    ref.listen(localGameProvider, (_, next) {
-      _showErrorIfNeeded(next);
-    });
-    ref.listen(gameProvider, (_, next) {
-      _showErrorIfNeeded(next);
-    });
   }
 
   void _showErrorIfNeeded(GameState state) {
@@ -89,6 +79,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Widget build(BuildContext context) {
     final isSingle = ref.watch(isSinglePlayerProvider);
     final gameState = isSingle ? ref.watch(localGameProvider) : ref.watch(gameProvider);
+
+    ref.listen(localGameProvider, (_, next) => _showErrorIfNeeded(next));
+    ref.listen(gameProvider, (_, next) => _showErrorIfNeeded(next));
 
     if (isSingle) {
       return _buildGameContent(context, gameState, isSingle: true);
