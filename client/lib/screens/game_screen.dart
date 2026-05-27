@@ -193,6 +193,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (state.board != null) {
       return _buildBoardCards(state.board!);
     }
+    if (state.currentTurnPlayerId != null && state.turnTimeoutRemainingMs != null) {
+      return _buildCountdown(state.turnTimeoutRemainingMs!);
+    }
     if (state.phase == 'DEALT' || state.phase == 'WAITING') {
       return const Padding(
         padding: EdgeInsets.all(24),
@@ -206,6 +209,52 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       );
     }
     return const SizedBox(height: 8);
+  }
+
+  Widget _buildCountdown(int seconds) {
+    final progress = seconds / 60.0;
+    final urgent = seconds <= 10;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 3,
+                  backgroundColor: Colors.white12,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    urgent ? AppColors.redTeam : AppColors.gold,
+                  ),
+                ),
+                Text(
+                  '$seconds',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: urgent ? AppColors.redTeam : AppColors.gold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            urgent ? '即将超时!' : '请出牌',
+            style: TextStyle(
+              fontSize: 14,
+              color: urgent ? AppColors.redTeam : Colors.white54,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildBoardCards(BoardState board) {

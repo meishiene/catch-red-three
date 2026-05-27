@@ -174,28 +174,28 @@ class _PlayerSeat extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Avatar
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: isActive
-                  ? const LinearGradient(colors: [AppColors.gold, AppColors.goldDark])
-                  : isRed
-                      ? const LinearGradient(colors: [Color(0xFFE53935), Color(0xFFB71C1C)])
-                      : const LinearGradient(colors: [Color(0xFF616161), Color(0xFF424242)]),
-              boxShadow: isActive
-                  ? [BoxShadow(color: AppColors.gold.withOpacity(0.4), blurRadius: 6)]
-                  : null,
-            ),
-            child: Center(
-              child: Text(
-                isRed ? '红' : name[0],
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+          // Avatar with pulse animation
+          _AvatarPulse(
+            isActive: isActive,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: isActive
+                    ? const LinearGradient(colors: [AppColors.gold, AppColors.goldDark])
+                    : isRed
+                        ? const LinearGradient(colors: [Color(0xFFE53935), Color(0xFFB71C1C)])
+                        : const LinearGradient(colors: [Color(0xFF616161), Color(0xFF424242)]),
+              ),
+              child: Center(
+                child: Text(
+                  isRed ? '红' : name[0],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -235,6 +235,74 @@ class _PlayerSeat extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _AvatarPulse extends StatefulWidget {
+  final bool isActive;
+  final Widget child;
+  const _AvatarPulse({required this.isActive, required this.child});
+
+  @override
+  State<_AvatarPulse> createState() => _AvatarPulseState();
+}
+
+class _AvatarPulseState extends State<_AvatarPulse> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _animation = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    if (widget.isActive) _controller.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(_AvatarPulse old) {
+    super.didUpdateWidget(old);
+    if (widget.isActive && !_controller.isAnimating) {
+      _controller.repeat(reverse: true);
+    } else if (!widget.isActive && _controller.isAnimating) {
+      _controller.stop();
+      _controller.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isActive) return widget.child;
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.gold.withOpacity(0.5 * _animation.value),
+                blurRadius: 8 * _animation.value,
+                spreadRadius: 2 * _animation.value,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: widget.child,
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/game_state.dart';
 import '../engine/types.dart';
@@ -8,10 +9,34 @@ import 'app_provider.dart';
 
 class LocalGameNotifier extends StateNotifier<GameState> {
   late LocalGameEngine _engine;
+  Timer? _turnTimer;
+  int _remainingSeconds = 60;
+  static const _turnDuration = 60;
 
   LocalGameNotifier() : super(GameState()) {}
 
+  void _startTurnTimer() {
+    _cancelTurnTimer();
+    _remainingSeconds = _turnDuration;
+    state = state.copyWith(turnTimeoutRemainingMs: _remainingSeconds);
+    _turnTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _remainingSeconds--;
+      if (_remainingSeconds <= 0) {
+        _cancelTurnTimer();
+        _engine.handleHumanPass();
+      } else {
+        state = state.copyWith(turnTimeoutRemainingMs: _remainingSeconds);
+      }
+    });
+  }
+
+  void _cancelTurnTimer() {
+    _turnTimer?.cancel();
+    _turnTimer = null;
+  }
+
   void startNewGame(int maxPlayers, AIDifficulty difficulty, String playerName) {
+    _cancelTurnTimer();
     _engine = LocalGameEngine(
       maxPlayers: maxPlayers,
       difficulty: difficulty,
@@ -78,15 +103,18 @@ class LocalGameNotifier extends StateNotifier<GameState> {
           isFirstTrick: data['isFirstTrick'] as bool? ?? false,
           trickLeaderId: data['isTrickLeader'] == true ? 'p0' : null,
         );
+        _startTurnTimer();
         break;
 
       case 'game:cards-played':
+        _cancelTurnTimer();
         final playerId = data['playerId'] as String;
         final cards = (data['cards'] as List).cast<GameCard>();
         final playType = PlayType.values.firstWhere((t) => t.name == data['playType']);
         state = state.copyWith(
           board: BoardState(cards: cards, playType: playType, playedByPlayerId: playerId),
           currentTurnPlayerId: null,
+          turnTimeoutRemainingMs: null,
         );
         // Remove played cards from hand if it was human
         if (playerId == 'p0') {
@@ -99,7 +127,8 @@ class LocalGameNotifier extends StateNotifier<GameState> {
         break;
 
       case 'game:player-passed':
-        state = state.copyWith(currentTurnPlayerId: null);
+        _cancelTurnTimer();
+        state = state.copyWith(currentTurnPlayerId: null, turnTimeoutRemainingMs: null);
         break;
 
       case 'game:cards-remaining':
@@ -116,6 +145,7 @@ class LocalGameNotifier extends StateNotifier<GameState> {
         break;
 
       case 'game:over':
+        _cancelTurnTimer();
         state = state.copyWith(phase: 'GAME_OVER', gameOverData: data);
         break;
 
@@ -194,6 +224,7 @@ class LocalGameNotifier extends StateNotifier<GameState> {
   }
 
   void clear() {
+    _cancelTurnTimer();
     state = GameState();
   }
 
