@@ -66,7 +66,7 @@ class TableLayout extends StatelessWidget {
                   ),
                 ),
               ),
-              // Opponent seats in semi-circle
+              // Opponent seats evenly distributed across the top
               ...List.generate(count, (i) {
                 final entry = opponents[i];
                 final playerId = entry.key;
@@ -76,22 +76,20 @@ class TableLayout extends StatelessWidget {
                 final team = teams[playerId];
                 final hasRevealed = revealedCards.any((r) => r['playerId'] == playerId);
 
-                // Arc from -160 to -20 degrees
-                final startAngle = -2.8;
-                final endAngle = -0.34;
-                final angle = count <= 1
-                    ? (startAngle + endAngle) / 2
-                    : startAngle + (endAngle - startAngle) * i / (count - 1);
-
-                final radius = width * 0.38;
-                final centerX = width / 2;
-                final centerY = height * 0.5;
-                final x = centerX + radius * cos(angle) - 42;
-                final y = centerY + radius * sin(angle) - 15;
+                // Even horizontal distribution within visible area
+                final seatWidth = 88.0;
+                final totalSeatsWidth = seatWidth * count;
+                final spacing = count > 1
+                    ? (width - totalSeatsWidth) / (count + 1)
+                    : (width - seatWidth) / 2;
+                final xPos = spacing + i * (seatWidth + spacing);
+                // Vertical: slight arc for visual appeal — all seats stay visible
+                final normalizedPos = count > 1 ? (i / (count - 1) - 0.5) * 2 : 0.0;
+                final yPos = 8.0 + (normalizedPos * normalizedPos) * 30;
 
                 return Positioned(
-                  left: x,
-                  top: y,
+                  left: xPos,
+                  top: yPos,
                   child: _PlayerSeat(
                     name: name,
                     cardCount: isFinished ? 0 : entry.value,
