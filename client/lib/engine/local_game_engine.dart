@@ -34,6 +34,13 @@ class LocalGameEngine {
   int _currentTributeIndex = 0;
   bool _waitingForHumanTribute = false;
 
+  // Wind (送风) state
+  bool _windPending = false;
+  String? _windRequesterId;
+  String? _windFinisherId;
+  BoardState? _windBoard;
+  bool _freePlayMode = false;
+
   LocalGameEngine({
     required this.maxPlayers,
     this.difficulty = AIDifficulty.NORMAL,
@@ -285,14 +292,31 @@ class LocalGameEngine {
   }
 
   void _requestTurn(String playerId) {
-    final hand = hands[playerId] ?? [];
     final board = getBoardState(trickState);
     final isLeader = isTrickLeader(trickState, playerId);
-    final player = players.firstWhere((p) => p['id'] == playerId);
-    final isAI = player['isAI'] as bool;
+
+    // Wind opportunity: next player after someone finished with board
+    if (_windPending && !_freePlayMode) {
+      if (playerId == 'p0') {
+        // Ask human if they want to 要风
+        onEvent('game:wind-request', {
+          'board': board != null ? {
+            'cards': board.cards,
+            'playType': board.playType.name,
+            'playedByPlayerId': board.playedByPlayerId,
+          } : null,
+          'finisherId': _windFinisherId,
+          'finisherName': _playerName(_windFinisherId!),
+        });
+        return;
+      } else {
+        // AI decides
+        _handleAIWindDecision(playerId);
+        return;
+      }
+    }
 
     if (playerId == 'p0') {
-      // Human turn
       onEvent('game:turn-request', {
         'board': board != null ? {
           'cards': board.cards,
@@ -302,8 +326,7 @@ class LocalGameEngine {
         'isFirstTrick': trickState.isFirstTrick,
         'isTrickLeader': isLeader,
       });
-    } else if (isAI) {
-      // AI turn with delay for natural feel
+    } else if (_isAI(playerId)) {
       Future.delayed(Duration(milliseconds: 800 + _rng.nextInt(1500)), () {
         if (phase != 'PLAYING') return;
         if (getCurrentPlayerId(trickState) != playerId) return;
@@ -312,9 +335,164 @@ class LocalGameEngine {
     }
   }
 
+  void _handleAIWindDecision(String aiId) {
+    final hand = hands[aiId] ?? [];
+    final board = getBoardState(trickState);
+
+    // AI decides to 要风 based on difficulty
+    bool takeWind = false;
+    switch (difficulty) {
+      case AIDifficulty.EASY:
+        takeWind = _rng.nextDouble() < 0.4;
+        break;
+      case AIDifficulty.NORMAL:
+        // Take wind if can't beat the board or has few cards left
+        final legal = getAllLegalPlays(hand, board);
+        takeWind = legal.isEmpty || hand.length <= 3;
+        break;
+      case AIDifficulty.HARD:
+        // Strategically take wind when beneficial
+        final legal = getAllLegalPlays(hand, board);
+        takeWind = legal.isEmpty ||
+            (hand.length <= 4 && legal.every((p) => p.length > 1));
+        break;
+    }
+
+    if (takeWind) {
+      _windRequesterId = aiId;
+      // Check with other players
+      _checkWindAgreement();
+    } else {
+      // Normal play
+      _windPending = false;
+      _handleAITurn(aiId);
+    }
+  }
+
+  void handleWindRequest(bool takeWind) {
+    if (!_windPending) return;
+    if (takeWind) {
+      _windRequesterId = 'p0';
+      _checkWindAgreement();
+    } else {
+      _windPending = false;
+      _requestTurn('p0');
+    }
+  }
+
+  void _checkWindAgreement() {
+    final others = trickState.activePlayerIds
+        .where((id) => id != _windRequesterId && !finishOrder.contains(id))
+        .toList();
+
+    if (others.isEmpty) {
+      _grantWind();
+      return;
+    }
+
+    // Check if any human player among others
+    if (others.contains('p0')) {
+      onEvent('game:wind-agree-request', {
+        'requesterId': _windRequesterId,
+        'requesterName': _playerName(_windRequesterId!),
+      });
+      return; // wait for human response
+    }
+
+    // All AI — decide
+    bool allAgreed = true;
+    String? opposer;
+    for (final id in others) {
+      if (!_aiAgreesWind(id)) {
+        allAgreed = false;
+        opposer = id;
+        break;
+      }
+    }
+
+    if (allAgreed) {
+      _grantWind();
+    } else {
+      _opposeWind(opposer!);
+    }
+  }
+
+  bool _aiAgreesWind(String aiId) {
+    final hand = hands[aiId] ?? [];
+    switch (difficulty) {
+      case AIDifficulty.EASY:
+        return _rng.nextDouble() < 0.8;
+      case AIDifficulty.NORMAL:
+        return _rng.nextDouble() < 0.6;
+      case AIDifficulty.HARD:
+        // Oppose if can beat the board
+        final legal = getAllLegalPlays(hand, _windBoard);
+        return legal.isEmpty;
+    }
+  }
+
+  void handleWindAgree(bool agree) {
+    if (agree) {
+      _grantWind();
+    } else {
+      _opposeWind('p0');
+    }
+  }
+
+  void _grantWind() {
+    _windPending = false;
+    _freePlayMode = true;
+    onEvent('game:wind-granted', {
+      'requesterId': _windRequesterId,
+      'requesterName': _playerName(_windRequesterId!),
+    });
+    _requestTurn(_windRequesterId!);
+  }
+
+  void _opposeWind(String opposerId) {
+    _windPending = false;
+    _freePlayMode = false;
+    onEvent('game:wind-opposed', {
+      'requesterId': _windRequesterId,
+      'opposerId': opposerId,
+      'opposerName': _playerName(opposerId),
+    });
+    // Opposer must beat the board — make them the current player
+    if (opposerId == 'p0') {
+      _requestTurn('p0');
+    } else {
+      _handleAITurn(opposerId);
+    }
+  }
+
+  bool _isAI(String playerId) {
+    for (final p in players) {
+      if (p['id'] == playerId) return p['isAI'] as bool;
+    }
+    return false;
+  }
+
   void _handleAITurn(String playerId) {
     final hand = hands[playerId] ?? [];
     final board = getBoardState(trickState);
+
+    // Free play mode (wind granted) — play any valid cards
+    if (_freePlayMode) {
+      _freePlayMode = false;
+      if (hand.isEmpty) {
+        _applyPass(playerId);
+        return;
+      }
+      // Play a single card or the best available play
+      final decision = decideAI(hand, null, difficulty, true, []);
+      if (decision.cards != null) {
+        _applyPlay(playerId, decision.cards!);
+      } else {
+        _applyPlay(playerId, [hand.first]);
+      }
+      return;
+    }
+
     final team = teams[playerId] ?? 'black';
     final teamMembers = getTeamMembers(teams, team);
     final teamCardCounts = teamMembers
@@ -354,6 +532,18 @@ class LocalGameEngine {
 
     final board = getBoardState(trickState);
     final isLeader = isTrickLeader(trickState, 'p0');
+
+    if (_freePlayMode) {
+      // Wind granted — validate only card type, not against board
+      final playInfo = determinePlay(selectedCards);
+      if (playInfo == null) {
+        onEvent('game:error', {'message': '无效的牌型组合'});
+        return;
+      }
+      _freePlayMode = false;
+      _applyPlay('p0', selectedCards);
+      return;
+    }
 
     final validation = validatePlay(selectedCards, hand, board, trickState.isFirstTrick, isLeader);
     if (!validation.valid) {
@@ -407,6 +597,14 @@ class LocalGameEngine {
         'playerId': playerId,
         'position': finishOrder.length,
       });
+
+      // Wind (送风): if player finished with a board, next player gets wind option
+      final currentBoard = getBoardState(trickState);
+      if (currentBoard != null && !_windPending) {
+        _windPending = true;
+        _windFinisherId = playerId;
+        _windBoard = currentBoard;
+      }
     }
 
     // Check game over
@@ -429,6 +627,8 @@ class LocalGameEngine {
       onEvent('game:trick-won', {'playerId': winnerId});
 
       if (!finishOrder.contains(winnerId)) {
+        _windPending = false;
+        _freePlayMode = false;
         resetTrick(trickState, winnerId);
         trickState.activePlayerIds = Set<String>.from(
           trickState.playerOrder.where((id) => !finishOrder.contains(id)),
@@ -451,6 +651,8 @@ class LocalGameEngine {
     if (trickState.activePlayerIds.length <= 1) {
       final winnerId = trickState.boardPlayerId;
       if (winnerId != null && !finishOrder.contains(winnerId)) {
+        _windPending = false;
+        _freePlayMode = false;
         onEvent('game:trick-won', {'playerId': winnerId});
         resetTrick(trickState, winnerId);
         trickState.activePlayerIds = Set<String>.from(

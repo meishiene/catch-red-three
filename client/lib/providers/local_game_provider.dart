@@ -178,6 +178,22 @@ class LocalGameNotifier extends StateNotifier<GameState> {
       case 'game:tribute-complete':
         state = state.copyWith(tributeData: null);
         break;
+
+      case 'game:wind-request':
+        state = state.copyWith(windData: data);
+        break;
+
+      case 'game:wind-agree-request':
+        state = state.copyWith(windData: data);
+        break;
+
+      case 'game:wind-granted':
+        state = state.copyWith(windData: null);
+        break;
+
+      case 'game:wind-opposed':
+        state = state.copyWith(windData: null);
+        break;
     }
   }
 
@@ -221,6 +237,14 @@ class LocalGameNotifier extends StateNotifier<GameState> {
 
   void tributeContinue() {
     _engine.handleTributeContinue();
+  }
+
+  void handleWindRequest(bool takeWind) {
+    _engine.handleWindRequest(takeWind);
+  }
+
+  void handleWindAgree(bool agree) {
+    _engine.handleWindAgree(agree);
   }
 
   void clear() {

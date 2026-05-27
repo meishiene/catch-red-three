@@ -11,6 +11,7 @@ import '../widgets/cards/playing_card_widget.dart';
 import '../widgets/game_table/table_layout.dart';
 import '../widgets/actions/reveal_dialog.dart';
 import '../widgets/actions/tribute_dialog.dart';
+import '../widgets/actions/wind_dialog.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -22,6 +23,7 @@ class GameScreen extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<GameScreen> {
   bool _revealDialogShown = false;
   Map<String, dynamic>? _lastTributeData;
+  Map<String, dynamic>? _lastWindData;
 
   @override
   void initState() {
@@ -179,6 +181,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
     if (state.tributeData == null) {
       _lastTributeData = null;
+    }
+
+    // Wind
+    if (state.windData != null &&
+        state.windData != _lastWindData &&
+        state.phase == 'PLAYING') {
+      final data = state.windData;
+      _lastWindData = data;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showWindDialog(context, isSingle, data!);
+      });
+    }
+    if (state.windData == null) {
+      _lastWindData = null;
     }
 
     // Game over
@@ -463,6 +479,39 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           }
         },
       ),
+    );
+  }
+
+  void _showWindDialog(BuildContext context, bool isSingle, Map<String, dynamic> data) {
+    if (!isSingle) return;
+    final isRequest = data.containsKey('finisherId');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => isRequest
+          ? WindRequestDialog(
+              windData: data,
+              onTakeWind: () {
+                Navigator.pop(ctx);
+                ref.read(localGameProvider.notifier).handleWindRequest(true);
+              },
+              onDecline: () {
+                Navigator.pop(ctx);
+                ref.read(localGameProvider.notifier).handleWindRequest(false);
+              },
+            )
+          : WindAgreeDialog(
+              windData: data,
+              onAgree: () {
+                Navigator.pop(ctx);
+                ref.read(localGameProvider.notifier).handleWindAgree(true);
+              },
+              onOppose: () {
+                Navigator.pop(ctx);
+                ref.read(localGameProvider.notifier).handleWindAgree(false);
+              },
+            ),
     );
   }
 

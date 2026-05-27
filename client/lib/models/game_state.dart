@@ -19,6 +19,7 @@ class GameState {
   final Map<String, dynamic>? gameOverData;
   final String? errorMessage;
   final Map<String, dynamic>? tributeData;
+  final Map<String, dynamic>? windData;
 
   GameState({
     this.phase = 'WAITING',
@@ -39,6 +40,7 @@ class GameState {
     this.gameOverData,
     this.errorMessage,
     this.tributeData,
+    this.windData,
   });
 
   GameState copyWith({
@@ -60,6 +62,7 @@ class GameState {
     Map<String, dynamic>? gameOverData,
     String? errorMessage,
     Map<String, dynamic>? tributeData,
+    Map<String, dynamic>? windData,
   }) {
     return GameState(
       phase: phase ?? this.phase,
@@ -80,6 +83,7 @@ class GameState {
       gameOverData: gameOverData ?? this.gameOverData,
       errorMessage: errorMessage ?? this.errorMessage,
       tributeData: tributeData ?? this.tributeData,
+      windData: windData ?? this.windData,
     );
   }
 
